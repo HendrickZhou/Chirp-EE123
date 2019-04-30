@@ -10,6 +10,11 @@ Our final code should run on `/src/main.ipynb`(or `main.py`, but I think noteboo
 
 `/src/utils.py` contains utilities function for the purpose of convenience.
 
+## Notice!
+Before we find better solution for the python module import problem, remeber to change the `sys.path.append("path")` to your own project directory!
+
+I'm not pretty sure if this would work on Rasberry Pi.
+
 ## Concerns about cross-platform
 Basically compression and transmission part is likely to run on different platform, some inconvenience might be cause by this.
 
