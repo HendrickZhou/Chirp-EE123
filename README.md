@@ -8,7 +8,9 @@ Before we start integrate our code, we can develop Compression and Transmission 
 
 Our final code should run on `/src/main.ipynb`(or `main.py`, but I think notebook looks much better)
 
-`/src/utils.py` contains utilities function for the purpose of convenience.
+`/src/utils/` contains utilities function for the purpose of convenience.
+
+our test videos/images will be put under `/asset`
 
 ## Notice!
 Before we find better solution for the python module import problem, remeber to change the `sys.path.append("path")` to your own project directory!
