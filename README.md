@@ -14,7 +14,12 @@ our test videos/images will be put under `/asset`
 
 ## Notice!
 -   Whenever use diretory, absolute path is suggested.
--   Before we find better solution for the python module import problem, remeber to change the `sys.path.append("path")` to your own project directory! (I'm not pretty sure if this would work on Rasberry Pi.)
+-   Before we find better solution for the python module import problem, remeber to add 3 lines on every script that will import our own module
+```
+script_path = os.path.dirname(os.path.abspath( __file__ ))
+module_path = script_path[:script_path.rfind('src')]+ 'src' + '/'
+sys.path.append(module_path)
+```
 -   if you want to run the helper function on laptop, install ffmpeg first
 
 ## Concerns about cross-platform
