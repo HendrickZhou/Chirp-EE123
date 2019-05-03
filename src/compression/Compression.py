@@ -5,7 +5,7 @@ class CompressData:
     def __init__(self, datastream):
         pass
 
-    def resample(self):
+    def resampleImage(self):
         pass
 
-    def 
+    
