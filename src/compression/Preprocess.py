@@ -1,15 +1,19 @@
 import sys
-sys.path.append("/Users/zhouhang/Project/Chirp-EE123/src")
+import os
+script_path = os.path.dirname(os.path.abspath( __file__ ))
+module_path = script_path[:script_path.rfind('src')]+ 'src' + '/'
+sys.path.append(module_path)
 from utils.Helper_functions import *
-from Compression.CompressData import *
+# from compression import CompressData
 
+print(script_path)
 
+# class Preprocess:
+#     """
+#     This class is the interface for 
 
-class Preprocess:
-    """
-    This class is the interface for 
-
-    """
+#     """
+#     def __init__(self,)
 
 
 
