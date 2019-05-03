@@ -124,8 +124,3 @@ def psnr(ref, meas, maxVal=255):
     mse = np.linalg.norm(dif)**2/np.prod(np.shape(ref))
     psnr = 10*np.log10(maxVal**2.0/mse)
     return psnr
-
-
-if __name__ == "__main__":
-    filename = "/Users/zhouhang/Project/Chirp-EE123/asset/simpson/"
-    imageStack_load(filename)

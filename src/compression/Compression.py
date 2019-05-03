@@ -4,3 +4,8 @@ class CompressData:
     """
     def __init__(self, datastream):
         pass
+
+    def resample(self):
+        pass
+
+    def 
