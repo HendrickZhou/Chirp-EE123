@@ -8,7 +8,9 @@ Before we start integrate our code, we can develop Compression and Transmission 
 
 Our final code should run on `/src/main.ipynb`(or `main.py`, but I think notebook looks much better)
 
-`/src/utils.py` contains utilities function for the purpose of convenience.
+`/src/utils/` contains utilities function for the purpose of convenience.
+
+our test videos/images will be put under `/asset`
 
 ## Notice!
 Before we find better solution for the python module import problem, remeber to change the `sys.path.append("path")` to your own project directory!
@@ -21,6 +23,7 @@ Basically compression and transmission part is likely to run on different platfo
 I'm not sure if cloning this whole repository into Pi would cause shortage on memory while we're developing on it, so for transmission it's probably not a bad idea to develop on your own code first.
 
 Anyway this repository is created for the purpose of better collaboration.
+<<<<<<< HEAD
 
 
 
@@ -46,3 +49,5 @@ Anyway this repository is created for the purpose of better collaboration.
 -    Compute peak signal-to-noise ratio (PSNR):
 
 `psnr(reference_image_stack, measured_image_stack, maxVal=255)`
+=======
+>>>>>>> d8267cc4b4035df57dd01729aedf963f6ed0d818
