@@ -13,9 +13,9 @@ Our final code should run on `/src/main.ipynb`(or `main.py`, but I think noteboo
 our test videos/images will be put under `/asset`
 
 ## Notice!
-Before we find better solution for the python module import problem, remeber to change the `sys.path.append("path")` to your own project directory!
-
-I'm not pretty sure if this would work on Rasberry Pi.
+-   Whenever use diretory, absolute path is suggested.
+-   Before we find better solution for the python module import problem, remeber to change the `sys.path.append("path")` to your own project directory! (I'm not pretty sure if this would work on Rasberry Pi.)
+-   if you want to run the helper function on laptop, install ffmpeg first
 
 ## Concerns about cross-platform
 Basically compression and transmission part is likely to run on different platform, some inconvenience might be cause by this.

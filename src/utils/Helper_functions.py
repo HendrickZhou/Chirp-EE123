@@ -91,7 +91,7 @@ def Tiff_load(path):
 # Image_stack loader with ffmpeg
 
 def imageStack_load(filename):
-    path        = filename[:filename.find('.')]+'/'
+    path = filename[:filename.rfind('.')]+'/'
     os.system("rm -rf {:s}".format(path))
     os.system("mkdir {:s}".format(path))
     os.system("ffmpeg -i {:s} {:s}frame_%2d.tiff".format(filename, path))
