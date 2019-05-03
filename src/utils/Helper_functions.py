@@ -100,7 +100,8 @@ def imageStack_load(filename):
     
     im = Image.open(image_files[0])
     xdim, ydim= im.size
-    image_stack = np.zeros((Nframe,ydim,xdim,3),dtype='uint8')
+    num_channel = len(im.split())
+    image_stack = np.zeros((Nframe,ydim,xdim,num_channel),dtype='uint8')
     
     for i in range(0,Nframe):
         im = Image.open(image_files[i])
@@ -123,3 +124,8 @@ def psnr(ref, meas, maxVal=255):
     mse = np.linalg.norm(dif)**2/np.prod(np.shape(ref))
     psnr = 10*np.log10(maxVal**2.0/mse)
     return psnr
+
+
+if __name__ == "__main__":
+    filename = "/Users/zhouhang/Project/Chirp-EE123/asset/simpson/"
+    imageStack_load(filename)
