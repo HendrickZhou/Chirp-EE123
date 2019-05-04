@@ -30,11 +30,13 @@ Now the loading video interface is finished, and since compression part is subje
 for transmission part, your git workflow stays the same.
 
 for compression part, you need use different commands:
--   Create local&remote branch
+-   Create/Switch local&remote branch
 
 ```
 git checkout -b branchname
 git push -u/--set-upstream origin branchname
+
+git checkout branchname
 ```
 
 
