@@ -23,12 +23,15 @@ sys.path.append(module_path)
 -   if you want to run the helper function on laptop, install ffmpeg first
 
 ## New Branch!
+    In case you're not familiar with git.
+
 Now the loading video interface is finished, and since compression part is subject to main transmission branch, all the devlopment work of compression will be done in this branch. Whenever there's a stable updated compression version, we will merge them.
 
 for transmission part, your git workflow stays the same.
 
 for compression part, you need use different commands:
 -	Pull and push
+
 ```
 git fetch
 git checkout origin/compression 
@@ -49,13 +52,18 @@ git checkout --track origin/compression
 So you can work on this branch just like master
 
 -   Merge:
+
 make sure operate safely, key points:
 1. make sure all branch is up-to-dated: use `git branch -va` to check.
 2. make sure you've switch into the main branch before merging
 
 Reference on this [tutorial](https://www.git-tower.com/learn/git/faq/git-merge-branch)
 
+-   After merging the branch:
 
+make sure ONLY ONE people __merge the branch__, and __delete the compression remote branch__. And now the master is the only branch left, and is distributed when everyone else fetch the newest master branch.
+
+After that, everyone's local branch can be deleted by `git branch -d branchname`.
 
 ## Concerns about cross-platform
 Basically compression and transmission part is likely to run on different platform, some inconvenience might be cause by this.
