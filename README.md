@@ -27,21 +27,28 @@ Now the loading video interface is finished, and since compression part is subje
 
 for transmission part, your git workflow stays the same.
 
-for compression part, you need to use these commands to pull and push:
+for compression part, you need use these commands to pull and push:
 ```
-~~git fetch~~
-~~git checkout origin/compression~~ (This one is not optimal solution)
 git fetch
-git checkout --track origin/compression (create local branch from the remote compression)
-```
-```
+git checkout origin/compression 
+
 ...work...
 git commit
 ...work...
 git commit
-~~git push origin HEAD:compression~~
-git push
+git push origin HEAD:compression
 ```
+For this solution, local branch is not created, so the push process is a little more complicated.
+
+Solution below is better
+```
+git fetch
+git checkout --track origin/compression 
+```
+So you can work on this branch just like master
+
+
+
 ## Concerns about cross-platform
 Basically compression and transmission part is likely to run on different platform, some inconvenience might be cause by this.
 
