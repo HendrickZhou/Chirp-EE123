@@ -29,8 +29,13 @@ I'm not sure if cloning this whole repository into Pi would cause shortage on me
 
 Anyway this repository is created for the purpose of better collaboration.
 
+## Branch!
+-   Merging:
+make sure operate safely, key points:
+1. make sure all branch is up-to-dated: use `git branch -va` to check.
+2. make sure you've switch into the main branch before merging
 
-
+Reference on this [tutorial](https://www.git-tower.com/learn/git/faq/git-merge-branch)
 
 
 ## APIs
