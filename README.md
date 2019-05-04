@@ -37,7 +37,7 @@ git checkout origin/compression
 git commit
 ...work...
 git commit
-git push origin/
+git push origin HEAD:compression
 ```
 ## Concerns about cross-platform
 Basically compression and transmission part is likely to run on different platform, some inconvenience might be cause by this.
