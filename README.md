@@ -29,15 +29,18 @@ for transmission part, your git workflow stays the same.
 
 for compression part, you need to use these commands to pull and push:
 ```
+~~git fetch~~
+~~git checkout origin/compression~~ (This one is not optimal solution)
 git fetch
-git checkout origin/compression
+git checkout --track origin/compression (create local branch from the remote compression)
 ```
 ```
 ...work...
 git commit
 ...work...
 git commit
-git push origin HEAD:compression
+~~git push origin HEAD:compression~~
+git push
 ```
 ## Concerns about cross-platform
 Basically compression and transmission part is likely to run on different platform, some inconvenience might be cause by this.
