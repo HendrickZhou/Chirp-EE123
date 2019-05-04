@@ -27,7 +27,8 @@ Now the loading video interface is finished, and since compression part is subje
 
 for transmission part, your git workflow stays the same.
 
-for compression part, you need use these commands to pull and push:
+for compression part, you need use different commands:
+-	Pull and push
 ```
 git fetch
 git checkout origin/compression 
@@ -47,6 +48,13 @@ git checkout --track origin/compression
 ```
 So you can work on this branch just like master
 
+-   Merge:
+make sure operate safely, key points:
+1. make sure all branch is up-to-dated: use `git branch -va` to check.
+2. make sure you've switch into the main branch before merging
+
+Reference on this [tutorial](https://www.git-tower.com/learn/git/faq/git-merge-branch)
+
 
 
 ## Concerns about cross-platform
@@ -55,14 +63,6 @@ Basically compression and transmission part is likely to run on different platfo
 I'm not sure if cloning this whole repository into Pi would cause shortage on memory while we're developing on it, so for transmission it's probably not a bad idea to develop on your own code first.
 
 Anyway this repository is created for the purpose of better collaboration.
-
-## Branch!
--   Merging:
-make sure operate safely, key points:
-1. make sure all branch is up-to-dated: use `git branch -va` to check.
-2. make sure you've switch into the main branch before merging
-
-Reference on this [tutorial](https://www.git-tower.com/learn/git/faq/git-merge-branch)
 
 
 ## APIs
