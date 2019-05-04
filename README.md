@@ -22,6 +22,23 @@ sys.path.append(module_path)
 ```
 -   if you want to run the helper function on laptop, install ffmpeg first
 
+## New Branch!
+Now the loading video interface is finished, and since compression part is subject to main transmission branch, all the devlopment work of compression will be done in this branch. Whenever there's a stable updated compression version, we will merge them.
+
+for transmission part, your git workflow stays the same.
+
+for compression part, you need to use these commands to pull and push:
+```
+git fetch
+git checkout origin/compression
+```
+```
+...work...
+git commit
+...work...
+git commit
+git push origin/
+```
 ## Concerns about cross-platform
 Basically compression and transmission part is likely to run on different platform, some inconvenience might be cause by this.
 
