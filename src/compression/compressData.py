@@ -10,11 +10,12 @@ class CompressData:
     """
     This class contains methods for image/video compression
     """
-    def __init__(self, datastream):
+    def __init__(self, dataStream, dataInfo):
         """
         Take the image pixel data nparry as input.
         """
-        self.datastream = datastream
+        self.dataStream = dataStream
+        self.dataInfo = dataInfo
 
     def resample(self):
 
@@ -42,4 +43,3 @@ class CompressData:
 
 if __name__ == "__main__":
     loadData = LoadData()
-    
