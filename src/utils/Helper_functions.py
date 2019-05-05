@@ -10,6 +10,7 @@ import bokeh.plotting as bk
 from bokeh.io import push_notebook
 from bokeh.resources import INLINE
 from bokeh.models import GlyphRenderer
+import matplotlib.pyplot as plt
 
 bk.output_notebook(INLINE)
 
@@ -25,8 +26,8 @@ def numericalSort(value):
 
 # Tiff stack player
 
-def Tiff_play(path, display_size, frame_rate):
-    image_files = sorted(glob.glob(path), key=numericalSort)
+def Tiff_play(path, display_size = 1, frame_rate = 2):
+    image_files = sorted(glob.glob(path+"*.tiff"), key=numericalSort)
     Nframe = len(image_files)
 
     im = Image.open(image_files[0])
@@ -75,7 +76,7 @@ def Tiff_play(path, display_size, frame_rate):
 # Image_stack loader
 
 def Tiff_load(path):
-    image_files = sorted(glob.glob(path), key=numericalSort)
+    image_files = sorted(glob.glob(path+"*.tiff"), key=numericalSort)
     Nframe = len(image_files)
     
     im = Image.open(image_files[0])
@@ -87,6 +88,34 @@ def Tiff_load(path):
         image_stack[i] = np.array(im)
     
     return image_stack
+
+
+def Tiff_show(path):
+    image_files = sorted(glob.glob(path+"*.tiff"), key=numericalSort)
+    Nframe = len(image_files)
+
+    im = Image.open(image_files[0])
+    xdim, ydim= im.size    
+
+    row = int(np.ceil(Nframe/3))
+    col = 3
+    fig, axs = plt.subplots(row, col, figsize = (15, 5))
+    # load image stack
+    for i in range(row):
+        for j in range(col):
+            fileIndex = i*row + j
+            if fileIndex > Nframe - 1:
+                imarray = np.zeros((ydim, xdim))
+            else:
+                im = Image.open(image_files[fileIndex])
+                im = im.convert("RGBA")
+                imarray = np.array(im)
+            if row == 1:
+                axs[j].imshow(imarray)
+            else:
+                axs[i, j].imshow(imarray)
+
+
 
 # Image_stack loader with ffmpeg
 
