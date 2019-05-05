@@ -109,6 +109,29 @@ def pca_reconstruction(V,Y,Mx):
     x=x_centered+np.tile(np.reshape(Mx,(Mx.size,1)),x_centered.shape[1])
     return x
 
+def reassembleX(x_segmented):
+    x=np.zeros((nImages,nRow,nCol,nColors))
+    for ri in range(nRowSec):
+        for ci in range(nColSec):
+            rowSecStart = rowSec[ri]
+            rowSecEnd = rowSec[ri + 1]
+            colSecStart = colSec[ci]
+            colSecEnd = colSec[ci + 1]
+
+            nrow = (rowSecEnd - rowSecStart) * nColors
+            nrowPerColor=(rowSecEnd - rowSecStart)
+            ncol = (colSecEnd - colSecStart)
+            seci = x_segmented[ri * nColSec + ci]
+            for img in range(nImages):
+                img_seci=seci[img*nrow:(img+1)*nrow, :]
+
+                x[img, rowSecStart:rowSecEnd, colSecStart:colSecEnd, 0]=img_seci[:nrowPerColor,:]
+                x[img, rowSecStart:rowSecEnd, colSecStart:colSecEnd, 1]=img_seci[nrowPerColor:nrowPerColor*2,:]
+                x[img, rowSecStart:rowSecEnd, colSecStart:colSecEnd, 2]=img_seci[nrowPerColor*2:nrowPerColor*3,:]
+
+    return x
+
+
 # pca compression
 
 def pca_compression(x,nPC=None):
@@ -121,7 +144,7 @@ def pca_compression(x,nPC=None):
 
 ##tests
 from sklearn import metrics
-## test 1, reconstruction with all pcs - passed
+## test 1, reconstruction with all pcs
 # V,Y,Mx,w=pca(segmentedX[0])
 # reconstructedX=pca_reconstruction(V,Y,Mx)
 # print('mse:'+str(metrics.mean_squared_error(segmentedX[0],reconstructedX)))
@@ -141,3 +164,15 @@ for s in range(len(segmentedX)):
     nPixels=segmentedX[s].size
     reconstructedX=pca_reconstruction(V,Y,Mx)
     print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
+
+## test 4, reassemble frames
+compressedX=[None]*len(segmentedX)
+for s in range(len(segmentedX)):
+    V,Y,Mx,w=pca_compression(segmentedX[s])
+    nPixels=segmentedX[s].size
+    reconstructedX=pca_reconstruction(V,Y,Mx)
+    compressedX[s]=reconstructedX
+    # print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
+reassembledImg=reassembleX(compressedX)
+assert reassembledImg.shape==frames.image_stack.shape
+print('mse per pixel:'+str(metrics.mean_squared_error(np.reshape(frames.image_stack,frames.image_stack.size),np.reshape(reassembledImg,reassembledImg.size))/frames.image_stack.size))
