@@ -96,15 +96,15 @@ class TNCaprs:
         ## compute sizes based on inputs
         self.TBW = 2.0   # TBW for the demod filters
         self.fs = fs     # sampling rate   
-        self.BW = 1600      # BW of filter based on TBW
-        self.baud = 1600
+        self.BW = 3000      # BW of filter based on TBW
+        self.baud = 3000
         self.N = (int(fs/self.baud*self.TBW)//2)*2+1   # length of the mark-space filters for demod
         self.Abuffer = Abuffer             # size of audio buffer
         self.Nchunks = Nchunks             # number of audio buffers to collect
         self.Nbuffer = Abuffer*Nchunks+(self.N*3-3)         # length of the large buffer for processing
         self.Ns = 1.0*fs/self.baud # samples per symbol
         self.mark_freq = 1200
-        self.space_freq = 3000
+        self.space_freq = 4000
         self.center_freq = 0.5 * (self.mark_freq + self.space_freq)
         
         ## state variables for the modulator
