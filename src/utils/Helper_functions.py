@@ -138,7 +138,7 @@ def npArray_show(npArray):
 
 
 
-def npArray_play_(npArray, display_size = 500, frame_rate = 2):
+def npArray_play(npArray, display_size = 500, frame_rate = 2):
 
     Nframe = npArray.shape[0]
     xdim = npArray.shape[2]
@@ -153,17 +153,6 @@ def npArray_play_(npArray, display_size = 500, frame_rate = 2):
         
     alpha_pad = 255*np.ones((Nframe,ydim,xdim,1),dtype='uint8')        
     display_array = np.append(rArray, alpha_pad, axis=3)
-#     plt.imshow(imarray[0])
-#     display_array = np.flipud(imarray)
-#     plt.figure()
-#     plt.imshow(display_array[0])
-
-
-
-
-
-    print(display_array.shape)
-    print(display_array.dtype)
     
     # Play video
     wait_time = 1/frame_rate
