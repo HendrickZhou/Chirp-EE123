@@ -59,13 +59,13 @@ def lcm(numbers):
 # Copy the TNC class between these lines:
 
 #     ----------------------------------------------------
-# import numpy.ctypeslib as npct
-# from ctypes import c_int
-# from ctypes import c_float
+import numpy.ctypeslib as npct
+from ctypes import c_int
+from ctypes import c_float
 
 # array_1d_int = npct.ndpointer(dtype=np.int, ndim=1, flags='CONTIGUOUS')
 
-# libcd = npct.load_library("./libpll", ".")
+# libcd = npct.load_library("../utils/libpll", ".")
 # libcd.pll.restype = c_int
 # libcd.pll.argtypes= [array_1d_int, c_int, array_1d_int,array_1d_int,  array_1d_int,array_1d_int, c_int, c_float]
 
@@ -136,6 +136,11 @@ class TNCaprs:
         self.oldbits = bitarray.bitarray([0,0,0,0,0,0,0])    # bits from end of prev buffer to be copied to beginning of new
         self.Npackets = 0                 # packet counter
         
+        self.array_1d_int = npct.ndpointer(dtype=np.int, ndim=1, flags='CONTIGUOUS')
+
+        self.libcd = npct.load_library("../utils/libpll", ".")
+        self.libcd.pll.restype = c_int
+        self.libcd.pll.argtypes= [self.array_1d_int, c_int, self.array_1d_int, self.array_1d_int,  self.array_1d_int, self.array_1d_int, c_int, c_float]
         
     
     
@@ -244,7 +249,7 @@ class TNCaprs:
         
         
         NRZb = (NRZa > 0).astype(np.int32)
-        tot = libcd.pll(NRZb,len(NRZb),recbits,recbits,pll,ppll,self.dpll,self.plla)
+        tot = self.libcd.pll(NRZb,len(NRZb),recbits,recbits,pll,ppll,self.dpll,self.plla)
         
         self.ppll = ppll.copy()
         self.pll = pll.copy()
