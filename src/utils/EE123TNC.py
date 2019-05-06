@@ -95,13 +95,17 @@ class TNCaprs:
         
         ## compute sizes based on inputs
         self.TBW = 2.0   # TBW for the demod filters
-        self.N = (int(fs/1200*self.TBW)//2)*2+1   # length of the mark-space filters for demod
         self.fs = fs     # sampling rate   
-        self.BW = 1200      # BW of filter based on TBW
+        self.BW = 1600      # BW of filter based on TBW
+        self.baud = 1600
+        self.N = (int(fs/self.baud*self.TBW)//2)*2+1   # length of the mark-space filters for demod
         self.Abuffer = Abuffer             # size of audio buffer
         self.Nchunks = Nchunks             # number of audio buffers to collect
         self.Nbuffer = Abuffer*Nchunks+(self.N*3-3)         # length of the large buffer for processing
-        self.Ns = 1.0*fs/1200.0 # samples per symbol
+        self.Ns = 1.0*fs/self.baud # samples per symbol
+        self.mark_freq = 1200
+        self.space_freq = 3000
+        self.center_freq = 0.5 * (self.mark_freq + self.space_freq)
         
         ## state variables for the modulator
         self.prev_ph = 0  # previous phase to maintain continuous phase when recalling the function
@@ -109,9 +113,9 @@ class TNCaprs:
         ##  Generate Filters for the demodulator
         self.h_lp = signal.firwin(self.N, self.BW/self.fs*1.0, window='hanning')
         self.h_lpp = signal.firwin(self.N, self.BW*2*1.2/self.fs,window='hanning')
-        self.h_space = self.h_lp*exp(1j*2*pi*(2200)*r_[-self.N/2:self.N/2]/self.fs)
-        self.h_mark = self.h_lp*exp(1j*2*pi*(1200)*r_[-self.N/2:self.N/2]/self.fs)
-        self.h_bp = (signal.firwin(self.N,self.BW/self.fs*2.2,window='hanning'))*exp(1j*2*pi*1700*r_[-self.N/2:self.N/2]/self.fs)
+        self.h_space = self.h_lp*exp(1j*2*pi*(self.space_freq)*r_[-self.N/2:self.N/2]/self.fs)
+        self.h_mark = self.h_lp*exp(1j*2*pi*(self.mark_freq)*r_[-self.N/2:self.N/2]/self.fs)
+        self.h_bp = (signal.firwin(self.N,self.BW/self.fs*2.2,window='hanning'))*exp(1j*2*pi*self.center_freq*r_[-self.N/2:self.N/2]/self.fs)
 
 
         ## PLL state variables  -- so conntinuity between buffers is preserved
@@ -194,17 +198,17 @@ class TNCaprs:
     
         
         # For you to complete
-        fss = lcm((1200,self.fs))
+        fss = lcm((self.baud,self.fs))
         deci = fss//self.fs
     
-        Nb = fss//1200
+        Nb = fss//self.baud
         nb = len(bits)
         NRZ = ones((nb,Nb))
         for n in range(0,nb):
             if bits[n]:
                 NRZ[n,:]=-NRZ[n,:]
 
-        freq = 1700 + 500*NRZ.ravel()
+        freq = self.center_freq + (self.center_freq - self.mark_freq)*NRZ.ravel()
         ph = 2.0*pi*integrate.cumtrapz(freq)/fss
         sig = cos(ph[::deci])
         
@@ -239,7 +243,7 @@ class TNCaprs:
 
 
     def FastPLL(self,NRZa):
-        recbits = np.zeros(len(NRZa)//(self.fs//1200)*2,dtype=np.int32)
+        recbits = np.zeros(len(NRZa)//(self.fs//self.baud)*2,dtype=np.int32)
         pll = np.zeros(1,dtype = np.int32)
         pll[0] = self.pll
         ppll = np.zeros(1,dtype = np.int32)
