@@ -275,8 +275,7 @@ class TNCaprs:
             self.ppll = self.pll
             self.pll = np.int32(self.pll+ self.dpll)
     
-        return idx[:c].astype(np.int32) 
-    
+        return idx[:c].astype(np.int32)   
    
 
     def findPackets(self,bits):
@@ -358,58 +357,9 @@ class TNCaprs:
     # function to parse packet bits to information
     def decodeAX25(self,bits, deepsearch=False):
         ax = ax25.AX25()
-        ax.info = "bad packet"
-    
-    
         bitsu = ax25.bit_unstuff(bits[8:-8])
-    
-        
-        #foundPacket = False
-        #if (self.genfcs(bitsu[:-16]).tobytes() == bitsu[-16:].tobytes()):
-        #        foundPacket = True
-        #elif deepsearch: 
-        #    tbits = bits[8:-8]
-        #    for n in range(0,len(tbits)):
-        #        tbits[n] = not tbits[n]
-        #        if (self.genfcs(bitsu[:-16]).tobytes() == bitsu[-16:].tobytes()):
-        #            foundPacket = True
-        #            print("Success deep search")
-        #            break
-        #        tbits[n] = not tbits[n]
-        # 
-        #if foundPacket == False:
-        #    return ax
-        
-        if (self.genfcs(bitsu[:-16]).tobytes() == bitsu[-16:].tobytes()) == False:
-            #print("failed fcs")
-            return ax
-                  
-    
         bytes = bitsu.tobytes()
-        ax.destination = ax.callsign_decode(bitsu[:56]).decode('ascii')
-        source = ax.callsign_decode(bitsu[56:112]).decode('ascii')
-    
-        if source[-1].isdigit() and source[-1]!="0":
-            ax.source = "".join((source[:-1],'-',source[-1]))
-        else:
-            ax.source = source[:-1]
-    
-        digilen=0    
-    
-        if bytes[14]=='\x03' and bytes[15]=='\xf0':
-            digilen = 0
-        else:
-            for n in range(14,len(bytes)-1):
-                if bytes[n] & 1:
-                    digilen = (n-14)+1
-                    break
-
-        #    if digilen > 56:
-        #        return ax
-        ax.digipeaters =  ax.callsign_decode(bitsu[112:112+digilen*8]).decode('ascii')
-        ax.info = bitsu[112+digilen*8+16:-16].tobytes()
-    
-    
+        ax.info = bitsu[:].tobytes()
         return ax
 
     def processBuffer(self, buff_in):
@@ -469,19 +419,226 @@ class TNCaprs:
             # reset chunk counter
             self.chunk_count = 0
             
+            validPackets = packets
             # checksum test for all detected packets
-            for n in range(0,len(packets)):
-                if len(packets[n]) > 200: 
-                    try:
-                        ax = self.decodeAX25(packets[n])
-                    except:
-                        ax = ax25.AX25()
-                        ax.info = "bad packet"
-                    if ax.info != 'bad packet':
-                        validPackets.append(packets[n])
+#             for n in range(0,len(packets)):
+#                 if len(packets[n]) > 200: 
+#                     try:
+#                         ax = self.decodeAX25(packets[n])
+#                     except:
+#                         ax = ax25.AX25()
+#                         ax.info = "bad packet"
+#                     if ax.info != 'bad packet':
+#                         validPackets.append(packets[n])
                         
             
         return validPackets
+   
+  #---------------------------------------------
+
+    #def findPackets(self,bits):
+#         # function take a bitarray and looks for AX.25 packets in it. 
+#         # It implements a 2-state machine of searching for flag or collecting packets
+#         flg = bitarray.bitarray([0,1,1,1,1,1,1,0])
+#         packets = []
+#         n = self.bitpointer
+        
+#         # Loop over bits
+#         while (n < len(bits)-7) :
+#             # default state is searching for packets
+#             if self.state is 'search':
+#                 # look for 1111110, because can't be sure if the first zero is decoded
+#                 # well if the packet is not padded.
+#                 if bits[n:n+7] == flg[1:]:
+#                     # flag detected, so switch state to collecting bits in a packet
+#                     # start by copying the flag to the packet
+#                     # start counter to count the number of bits in the packet
+#                     self.state = 'pkt'
+#                     self.packet=flg.copy()
+#                     self.pktcounter = 8
+#                     # Advance to the end of the flag
+#                     n = n + 7
+#                 else:
+#                     # flag was not found, advance by 1
+#                     n = n + 1            
+        
+#             # state is to collect packet data. 
+#             elif self.state is 'pkt':
+#                 # Check if we reached a flag by comparing with 0111111
+#                 # 6 times ones is not allowed in a packet, hence it must be a flag (if there's no error)
+#                 if bits[n:n+7] == flg[:7]:
+#                     # Flag detected, check if packet is longer than some minimum
+#                     if self.pktcounter > 200:
+#                         #print('packet found!')
+#                         # End of packet reached! append packet to list and switch to searching state
+#                         # We don't advance pointer since this our packet might have been
+#                         # flase detection and this flag could be the beginning of a real packet
+#                         self.state = 'search'
+#                         self.packet.extend(flg)
+#                         packets.append(self.packet.copy())
+#                     else:
+#                         # packet is too short! false alarm. Keep searching 
+#                         # We don't advance pointer since this this flag could be the beginning of a real packet
+#                         self.state = 'search'
+#                 # No flag, so collect the bit and add to the packet
+#                 else:
+#                     # check if packet is too long... if so, must be false alarm
+#                     if self.pktcounter < 2680:
+#                         # Not a false alarm, collect the bit and advance pointer        
+#                         self.packet.append(bits[n])
+#                         self.pktcounter = self.pktcounter + 1
+#                         n = n + 1
+#                     else:  #runaway packet
+#                         #runaway packet, switch state to searching, and advance pointer
+#                         self.state = 'search'
+#                         n = n + 1
+        
+#         self.bitpointer = n-(len(bits)-7) 
+#         return packets
+
+    
+#     # function to generate a checksum for validating packets
+#     def genfcs(self,bits):
+#         # Generates a checksum from packet bits
+#         fcs = ax25.FCS()
+#         for bit in bits:
+#             fcs.update_bit(bit)
+    
+#         digest = bitarray.bitarray(endian="little")
+#         digest.frombytes(fcs.digest())
+
+#         return digest
+
+
+
+
+#     # function to parse packet bits to information
+#     def decodeAX25(self,bits, deepsearch=False):
+#         ax = ax25.AX25()
+#         ax.info = "bad packet"
+    
+    
+#         bitsu = ax25.bit_unstuff(bits[8:-8])
+    
+        
+#         #foundPacket = False
+#         #if (self.genfcs(bitsu[:-16]).tobytes() == bitsu[-16:].tobytes()):
+#         #        foundPacket = True
+#         #elif deepsearch: 
+#         #    tbits = bits[8:-8]
+#         #    for n in range(0,len(tbits)):
+#         #        tbits[n] = not tbits[n]
+#         #        if (self.genfcs(bitsu[:-16]).tobytes() == bitsu[-16:].tobytes()):
+#         #            foundPacket = True
+#         #            print("Success deep search")
+#         #            break
+#         #        tbits[n] = not tbits[n]
+#         # 
+#         #if foundPacket == False:
+#         #    return ax
+        
+#         if (self.genfcs(bitsu[:-16]).tobytes() == bitsu[-16:].tobytes()) == False:
+#             #print("failed fcs")
+#             return ax
+                  
+    
+#         bytes = bitsu.tobytes()
+#         ax.destination = ax.callsign_decode(bitsu[:56]).decode('ascii')
+#         source = ax.callsign_decode(bitsu[56:112]).decode('ascii')
+    
+#         if source[-1].isdigit() and source[-1]!="0":
+#             ax.source = "".join((source[:-1],'-',source[-1]))
+#         else:
+#             ax.source = source[:-1]
+    
+#         digilen=0    
+    
+#         if bytes[14]=='\x03' and bytes[15]=='\xf0':
+#             digilen = 0
+#         else:
+#             for n in range(14,len(bytes)-1):
+#                 if bytes[n] & 1:
+#                     digilen = (n-14)+1
+#                     break
+
+#         #    if digilen > 56:
+#         #        return ax
+#         ax.digipeaters =  ax.callsign_decode(bitsu[112:112+digilen*8]).decode('ascii')
+#         ax.info = bitsu[112+digilen*8+16:-16].tobytes()
+    
+    
+#         return ax
+
+#     def processBuffer(self, buff_in):
+        
+#         # function processes an audio buffer. It collect several small into a large one
+#         # Then it demodulates and finds packets.
+#         #
+#         # The function operates as overlapp and save
+#         # The function returns packets when they become available. Otherwise, returns empty list
+        
+#         N = self.N
+#         NN = (N*3 -3 )
+        
+        
+#         Nchunks = self.Nchunks
+#         Abuffer = self.Abuffer
+#         fs = self.fs
+#         Ns = self.Ns
+        
+#         validPackets=[]
+#         packets=[]
+#         NRZI=[]
+#         idx = []
+#         bits = []
+        
+#         # Fill in buffer at the right place
+#         self.buff[NN+self.chunk_count*Abuffer:NN+(self.chunk_count+1)*Abuffer] = buff_in.copy()
+#         self.chunk_count = self.chunk_count + 1
+        
+        
+#         # number of chunk reached -- process large buffer
+#         if self.chunk_count == Nchunks:
+#             # Demodulate to get NRZI
+#             NRZI = self.demod(self.buff)
+#             # compute sampling points, using PLL
+#             #idx = self.PLL(NRZI)
+#             # Sample and make a decision based on threshold
+#             #bits = bitarray.bitarray((NRZI[idx]>0).tolist())
+            
+#             bits = self.FastPLL(NRZI)
+#             # In case that buffer is too small raise an error -- must have at least 7 bits worth
+#             if len(bits) < 7:
+#                 raise ValueError('number of bits too small for buffer')
+            
+#             # concatenate end of previous buffer to current one
+#             bits = self.oldbits + self.NRZI2NRZ(bits)
+            
+#             # store end of bit buffer to next buffer
+#             self.oldbits = bits[-7:].copy()
+            
+#             # look for packets
+#             packets = self.findPackets(bits)
+            
+#             # Copy end of sample buffer to the beginning of the next (overlapp and save)
+#             self.buff[:NN] = self.buff[-NN:].copy()
+            
+#             # reset chunk counter
+#             self.chunk_count = 0
+            
+#             # checksum test for all detected packets
+#             for n in range(0,len(packets)):
+#                 if len(packets[n]) > 200: 
+#                     try:
+#                         ax = self.decodeAX25(packets[n])
+#                     except:
+#                         ax = ax25.AX25()
+#                         ax.info = "bad packet"
+#                     if ax.info != 'bad packet':
+#                         validPackets.append(packets[n])
+                        
+            
+#         return validPackets
 #-----------------------------------------------------------
 
 
