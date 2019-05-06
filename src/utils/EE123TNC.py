@@ -419,17 +419,17 @@ class TNCaprs:
             # reset chunk counter
             self.chunk_count = 0
             
-            validPackets = packets
+            #validPackets = packets
             # checksum test for all detected packets
-#             for n in range(0,len(packets)):
-#                 if len(packets[n]) > 200: 
-#                     try:
-#                         ax = self.decodeAX25(packets[n])
-#                     except:
-#                         ax = ax25.AX25()
-#                         ax.info = "bad packet"
-#                     if ax.info != 'bad packet':
-#                         validPackets.append(packets[n])
+            for n in range(0,len(packets)):
+                if len(packets[n]) > 1500: 
+                    try:
+                        ax = self.decodeAX25(packets[n])
+                    except:
+                        ax = ax25.AX25()
+                        ax.info = "bad packet"
+                    if ax.info != 'bad packet':
+                        validPackets.append(packets[n])
                         
             
         return validPackets
