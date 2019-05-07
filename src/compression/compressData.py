@@ -10,6 +10,8 @@ from struct import *
 from utils.Helper_functions import *
 from loadData import LoadData
 
+buffer_path = asset_path + 'buffer.txt'
+
 class CompressData:
     """
     This class contains methods for image/video compression
@@ -23,14 +25,62 @@ class CompressData:
 
 
     """
-    def __init__(self):
+    def __init__(self, filename):
         """
         Take the image pixel data nparry as input.
         """
         # self.dataStream = dataStream
         # self.dataInfo = dataInfo
-        image = np.array(Image.open(buffer_path))
-        pass
+        image = np.array(Image.open(asset_path+filename))
+        self.filepath = asset_path + filename
+        self.image_stack = imageStack_load(self.filepath)
+        self.buffer_path = buffer_path
+
+        # self.format_table = {'resample': }
+
+
+    #-------------------------------------#
+    # RESAMPLE
+    #-------------------------------------#
+    def compress(self, method = 'downsample', params={'factor': 0.5, 'timeFlag': False}):
+        if method == 'downsample':
+            r, info = self.downsample(self.image_stack, params)
+            self.encode_resample(info, r.flatten())
+        elif method == 'pca':
+            pass
+
+
+
+        # write the prefix and combine all handled data together and wirte to the file now
+        self.encode(method)
+
+        # save it to the file
+
+
+    def decompress(self):
+        # extract from buffer.txt by default
+        self.decode()
+        method = self.method
+        if method == 'downsample':
+            # equal to decompress_resam
+            inf, bodyDat = self.decode_resample()
+            com_height = inf[5]
+            com_width = inf[6]
+            com_channels = inf[7]
+            com_frames = inf[8]
+            recons = self.upsample(bodyDat.reshape(com_frames, com_height, com_width, com_channels), inf)
+            # npArray_play(recons, frame_rate = 20)
+            pixData = recons
+
+        elif method == 'pca':
+            pass
+
+
+
+        # save np array to png image file
+        pngImg = Image.fromarray(pixData)
+        pngImg.save(self.filename)
+
 
     #-------------------------------------#
     # FILE CODING
@@ -38,13 +88,14 @@ class CompressData:
     #-------------------------------------#
     def encode(self, method):
         # add prefix to our 
-        mainData = self.encode_resample()
-        pass
-    def decode(self, filename):
-        self.compressedFileName = filename
+        with open(filename, 'bw+') as self.f_buffer:
+            mainData = self.encode_resample()
+    def decode(self):
+        filename = self.buffer_path
         # open and read file
         with open(filename, 'rb') as f_buffer:
             data = f_buffer.read()
+
         # extract the method
 
         # get remaining main data for further process
@@ -62,13 +113,7 @@ class CompressData:
         filename = asset_path + 'buffer.txt'
         self.compressedFileName = filename
         # with open(filename, 'bw+') as self.f_buffer:
-            # encode the origin_info
-
-
-            # add the file suffix!!!!!
-
-
-
+        # encode the origin_info
         new_info = [len(info)] + info
         header = pack('%si' % len(new_info), *new_info)
         # flatten the numpy array and encode 
@@ -97,7 +142,7 @@ class CompressData:
         return info, bodyData
         
     
-    def downsample(self, npArray, factor_xy, timeFlag = False):
+    def downsample(self, npArray, params):
         """
         Params:
             timeFlag: whether or not downsample in t index, False by default
@@ -106,6 +151,10 @@ class CompressData:
             If you want to use 100%, use 1.0 instead of 1!!
             we only support resample by 2 on time axis!!
         """
+
+        factor_xy = params['factor_xy']
+        timeFlag = params['timeFlag']
+
         if type(factor_xy) is not float:
             print("wrong sampling rate format!!!, continue with factor_xy = 1")
             factor_xy = 1.0
@@ -216,7 +265,6 @@ class CompressData:
     #-------------------------------------#
     def MoVec(self):
         pass
-
 
 
 
