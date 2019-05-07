@@ -10,7 +10,6 @@ from struct import *
 from utils.Helper_functions import *
 from loadData import LoadData
 
-
 class CompressData:
     """
     This class contains methods for image/video compression
@@ -30,6 +29,7 @@ class CompressData:
         """
         # self.dataStream = dataStream
         # self.dataInfo = dataInfo
+        image = np.array(Image.open(buffer_path))
         pass
 
     #-------------------------------------#
@@ -149,9 +149,6 @@ class CompressData:
         origin_info = [ori_height, ori_width, ori_frames, ori_channels]
         compressed_info = [timeFlag, height, width, frames, ori_channels]
         info = origin_info+compressed_info
-
-        # encode
-        encode_resample(self, info, bodyData)
         
         return result, info
 

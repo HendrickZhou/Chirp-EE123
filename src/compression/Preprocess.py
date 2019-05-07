@@ -40,7 +40,7 @@ class Preprocess:
 
         # write the prefix and combine all handled data together and wirte to the file now
         self.compressData.encode(method)
-        self.loadData.openFile(self.compressData.compressedFileName)
+        self.loadData.openFile(self.compressData.compressedFileName, 'rb')
 
     def readStream(self, chunkSize):
         bits = self.loadData.loadBitStream(chunkSize)
@@ -105,8 +105,11 @@ if __name__ == "__main__":
     # receiver end
     # I can assum the transmission part has handled the filename already
     # it should be the same with original one or with extra part
+    proR = Preprocess(asset_path+filename)
+
+        
+        
     filename = 'simpson_r.png' # for downsample use .txt, for other method use something like .jpg
     # what about if we don't know the compression method?
     # Judge from the header info
-    proR = Preprocess(asset_path+filename)
     proR.processDataRec()
