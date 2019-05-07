@@ -8,8 +8,14 @@ frames.loadVideoPixelData('C:\\UCBERKELEY\\sp19\\ee123\\project\\Chirp-EE123\\as
 print("shape of video data %s" % (frames.image_stack.shape,))
 nImages,nRow,nCol,nColors=frames.image_stack.shape      #assumes 3 color channel when preprocess
 
+param={}
+param['nImages']=nImages
+param['nRow']=nRow
+param['nCol']=nCol
+param['nColors']=nColors
+
 #tunable parameters
-sectionSize=80
+sectionSize=min(80,int(nRow/2),int(nCol/2))
 ifFlatten=False #if flatten: each colored section is a 1d vector input; otherwise: each monochrome row in a section is a separate 1d input
 
 #TODO: implement sectioning by similarity: http://ijcscn.com/Documents/Volumes/vol2issue1/ijcscn2012020118.pdf
@@ -24,6 +30,13 @@ colSec[-1]=max(colSec[-1],nCol)
 print(colSec)
 
 nSec=nColSec*nRowSec
+
+param['nRowSec']=nRowSec
+param['rowSec']=rowSec
+param['nColSec']=nColSec
+param['colSec']=colSec
+
+
 
 #preprocessing input image for PCA
 #PCA for RGB images: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.695.6281&rep=rep1&type=pdf
@@ -184,18 +197,34 @@ from sklearn import metrics
 #     plt.show()
 
 ## test 5, reassemble frames with 4% compression
-compressedX=[None]*len(segmentedX)
+# compressedX=[None]*len(segmentedX)
+# for s in range(len(segmentedX)):
+#     V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/100))
+#     nPixels=segmentedX[s].size
+#     reconstructedX=pca_reconstruction(V,Y,Mx)
+#     compressedX[s]=reconstructedX
+#     # print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
+# reassembledImg=reassembleX(compressedX)
+# assert reassembledImg.shape==frames.image_stack.shape
+# print('mse per pixel:'+str(metrics.mean_squared_error(np.reshape(frames.image_stack,frames.image_stack.size),np.reshape(reassembledImg,reassembledImg.size))/frames.image_stack.size))
+# print('max mse:'+str(np.max(metrics.mean_squared_error(np.reshape(frames.image_stack,frames.image_stack.size),np.reshape(reassembledImg,reassembledImg.size),multioutput='raw_values'))))
+# for img in range(nImages):
+#     plt.imshow(reassembledImg[img]/np.max(reassembledImg[img]))
+#     # plt.imshow(frames.image_stack[img])
+#     plt.show()
+
+##sending compressed arrays
+compressedX=None
+param['lenSegmentedX']=len(segmentedX)
 for s in range(len(segmentedX)):
     V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/25))
-    nPixels=segmentedX[s].size
-    reconstructedX=pca_reconstruction(V,Y,Mx)
-    compressedX[s]=reconstructedX
-    # print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
-reassembledImg=reassembleX(compressedX)
-assert reassembledImg.shape==frames.image_stack.shape
-print('mse per pixel:'+str(metrics.mean_squared_error(np.reshape(frames.image_stack,frames.image_stack.size),np.reshape(reassembledImg,reassembledImg.size))/frames.image_stack.size))
-print('max mse:'+str(np.max(metrics.mean_squared_error(np.reshape(frames.image_stack,frames.image_stack.size),np.reshape(reassembledImg,reassembledImg.size),multioutput='raw_values'))))
-for img in range(nImages):
-    plt.imshow(reassembledImg[img]/np.max(reassembledImg[img]))
-    # plt.imshow(frames.image_stack[img])
-    plt.show()
+    param['shapeV'+str(s)]=V.shape
+    param['shapeY'+str(s)]=Y.shape
+    param['shapeMx'+str(s)]=Mx.shape
+    ci=np.concatenate((V.flatten(),Y.flatten(),Mx.flatten()))
+    if s==0:
+        compressedX=ci
+    else:
+        compressedX=np.concatenate((compressedX,ci))
+
+
