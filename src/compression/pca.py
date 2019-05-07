@@ -1,5 +1,6 @@
 import loadData
 import numpy as np
+import matplotlib.pyplot as plt
 
 frames = loadData.LoadData()
 frames.loadVideoPixelData('C:\\UCBERKELEY\\sp19\\ee123\\project\\Chirp-EE123\\asset\\Andy_Video.png')
@@ -149,26 +150,43 @@ from sklearn import metrics
 # reconstructedX=pca_reconstruction(V,Y,Mx)
 # print('mse:'+str(metrics.mean_squared_error(segmentedX[0],reconstructedX)))
 
-## test 2, reconstruction with 4% compression
-print('4% compression:')
-for s in range(len(segmentedX)):
-    V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/25))
-    nPixels=segmentedX[s].size
-    reconstructedX=pca_reconstruction(V,Y,Mx)
-    print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
-
-## test 3, reconstruction with 1% compression
-print('1% compression:')
-for s in range(len(segmentedX)):
-    V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/100))
-    nPixels=segmentedX[s].size
-    reconstructedX=pca_reconstruction(V,Y,Mx)
-    print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
+# ## test 2, reconstruction with 4% compression
+# print('4% compression:')
+# for s in range(len(segmentedX)):
+#     V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/25))
+#     nPixels=segmentedX[s].size
+#     reconstructedX=pca_reconstruction(V,Y,Mx)
+#     print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
+#
+# ## test 3, reconstruction with 1% compression
+# print('1% compression:')
+# for s in range(len(segmentedX)):
+#     V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/100))
+#     nPixels=segmentedX[s].size
+#     reconstructedX=pca_reconstruction(V,Y,Mx)
+#     print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
 
 ## test 4, reassemble frames
+# compressedX=[None]*len(segmentedX)
+# for s in range(len(segmentedX)):
+#     V,Y,Mx,w=pca_compression(segmentedX[s])
+#     nPixels=segmentedX[s].size
+#     reconstructedX=pca_reconstruction(V,Y,Mx)
+#     compressedX[s]=reconstructedX
+#     # print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
+# reassembledImg=reassembleX(compressedX)
+# assert reassembledImg.shape==frames.image_stack.shape
+# print('mse per pixel:'+str(metrics.mean_squared_error(np.reshape(frames.image_stack,frames.image_stack.size),np.reshape(reassembledImg,reassembledImg.size))/frames.image_stack.size))
+# print('max mse:'+str(np.max(metrics.mean_squared_error(np.reshape(frames.image_stack,frames.image_stack.size),np.reshape(reassembledImg,reassembledImg.size),multioutput='raw_values'))))
+# for img in range(nImages):
+#     plt.imshow(reassembledImg[img]/np.max(reassembledImg[img]))
+#     # plt.imshow(frames.image_stack[img])
+#     plt.show()
+
+## test 5, reassemble frames with 4% compression
 compressedX=[None]*len(segmentedX)
 for s in range(len(segmentedX)):
-    V,Y,Mx,w=pca_compression(segmentedX[s])
+    V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/25))
     nPixels=segmentedX[s].size
     reconstructedX=pca_reconstruction(V,Y,Mx)
     compressedX[s]=reconstructedX
@@ -176,3 +194,8 @@ for s in range(len(segmentedX)):
 reassembledImg=reassembleX(compressedX)
 assert reassembledImg.shape==frames.image_stack.shape
 print('mse per pixel:'+str(metrics.mean_squared_error(np.reshape(frames.image_stack,frames.image_stack.size),np.reshape(reassembledImg,reassembledImg.size))/frames.image_stack.size))
+print('max mse:'+str(np.max(metrics.mean_squared_error(np.reshape(frames.image_stack,frames.image_stack.size),np.reshape(reassembledImg,reassembledImg.size),multioutput='raw_values'))))
+for img in range(nImages):
+    plt.imshow(reassembledImg[img]/np.max(reassembledImg[img]))
+    # plt.imshow(frames.image_stack[img])
+    plt.show()
