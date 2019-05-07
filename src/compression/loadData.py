@@ -78,7 +78,6 @@ class LoadData:
         return bitStream
 
 
-
 if __name__ == "__main__":
     loadData1 = LoadData()
     loadData2 = LoadData()

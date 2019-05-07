@@ -24,52 +24,76 @@ class CompressData:
 
 
     """
-    def __init__(self, dataStream, dataInfo):
+    def __init__(self):
         """
         Take the image pixel data nparry as input.
         """
-        self.dataStream = dataStream
-        self.dataInfo = dataInfo
+        # self.dataStream = dataStream
+        # self.dataInfo = dataInfo
+        pass
 
     #-------------------------------------#
     # FILE CODING
+    # this part only handle with already encoded file and add prefix and write it to file
     #-------------------------------------#
-    def codingData(self):
-        self.bodyData
-        self.headerData
+    def encode(self, method):
+        # add prefix to our 
+        mainData = self.encode_resample()
+        pass
+    def decode(self, filename):
+        self.compressedFileName = filename
+        # open and read file
+        with open(filename, 'rb') as f_buffer:
+            data = f_buffer.read()
+        # extract the method
 
+        # get remaining main data for further process
+        self.method = 'resample'
+        self.mainData = mainData
+        # return method, mainData
 
     #-------------------------------------#
     # RESAMPLE
     #-------------------------------------#
-    def encode(self, info, bodyData):
+    def encode_resample(self, info, bodyData):
         """
         to save the trouble from python bitstream, we'll use file as the buffer for transmission
         """
         filename = asset_path + 'buffer.txt'
-        with open(filename, 'bw+') as f_buffer:
+        self.compressedFileName = filename
+        # with open(filename, 'bw+') as self.f_buffer:
             # encode the origin_info
-            new_info = [len(info)] + info
-            header = pack('%si' % len(new_info), *new_info)
-            # flatten the numpy array and encode 
-            dataVec = bodyData.tolist()
-            body_header = pack('i', len(dataVec))
-            # Judge if the len need to use long
-            body = body_header + pack('%si' % len(dataVec), *dataVec)  
-            f_buffer.write(header+body)
 
-    def decode(self):
-        filename = asset_path + 'buffer.txt'
-        with open(filename, 'rb') as f_buffer:
-            data = f_buffer.read()
-            # decode the origin_info
-            header_len = unpack('i', data[0:4])
-            header_end_idx = 4*header_len[0]+4
-            info = unpack('%si' % (header_len[0]), data[4: header_end_idx])
-            # decode body
-            body_start_idx = header_end_idx
-            body_len = unpack('i', data[body_start_idx: body_start_idx + 4])
-            bodyData = np.array(unpack('%si' % (body_len[0]), data[body_start_idx + 4:]))
+
+            # add the file suffix!!!!!
+
+
+
+        new_info = [len(info)] + info
+        header = pack('%si' % len(new_info), *new_info)
+        # flatten the numpy array and encode 
+        dataVec = bodyData.tolist()
+        body_header = pack('i', len(dataVec))
+        # Judge if the len need to use long
+        body = body_header + pack('%si' % len(dataVec), *dataVec)  
+            # self.f_buffer.write(header+body)
+
+        return header + body
+
+    def decode_resample(self):
+        # filename = asset_path + 'buffer.txt'
+        # self.compressedFileName = filename
+        data = self.mainData
+        # add the file suffix!!!! and filename
+
+        # decode the origin_info
+        header_len = unpack('i', data[0:4])
+        header_end_idx = 4*header_len[0]+4
+        info = unpack('%si' % (header_len[0]), data[4: header_end_idx])
+        # decode body
+        body_start_idx = header_end_idx
+        body_len = unpack('i', data[body_start_idx: body_start_idx + 4])
+        bodyData = np.array(unpack('%si' % (body_len[0]), data[body_start_idx + 4:]))
         return info, bodyData
         
     
@@ -125,11 +149,14 @@ class CompressData:
         origin_info = [ori_height, ori_width, ori_frames, ori_channels]
         compressed_info = [timeFlag, height, width, frames, ori_channels]
         info = origin_info+compressed_info
+
+        # encode
+        encode_resample(self, info, bodyData)
         
         return result, info
 
 
-    def upsample(npArray, info):
+    def upsample(self, npArray, info):
         """    
         origin_info: list
         """
@@ -161,16 +188,6 @@ class CompressData:
             result[i] = misc.imresize(data_t[i], [ori_height, ori_width])
         
         return result
-
-encode(info, r.flatten())
-inf, bodyDat = decode()
-
-com_height = inf[5]
-com_width = inf[6]
-com_channels = inf[7]
-com_frames = inf[8]
-recons = upsample(bodyDat.reshape(com_frames, com_height, com_width, com_channels), inf)
-npArray_play(recons, frame_rate = 20)
 
     #-------------------------------------#
     # PCA
