@@ -14,13 +14,11 @@ class LoadData:
     load the data as a file for transmission
     load the data, get the pixel matrix and perform the compression stuff
 
-
     We can load 4 channel image though. But we don't need to handle it for simplicity
     """
 
     def __init__(self):
         pass    
-
 
     def loadVideoPixelData(self, filename):
         """
@@ -32,7 +30,16 @@ class LoadData:
 
         self.image_stack = imageStack_load(filename) # uint8 np array
 
+    def saveVideoPixelData(self, filename):
+        pass
 
+    def extractInfo(self):
+        pass
+
+
+    #-------------------------------------#
+    # debug pipelines
+    #-------------------------------------#
     def loadImagePixelData(self, filename):
         """
         If you only want to handle with single image, and try to avoid creating extra image file
@@ -40,8 +47,6 @@ class LoadData:
         # if not single image
         self.image = np.array(Image.open(filename))
         return self.image
-
-
 
     def openFile(self, filename):
         # try except
@@ -52,7 +57,6 @@ class LoadData:
         # if closed already, doesn't matter
         self.file.close()
         self.streamFlag = False
-
 
     def loadBitStream(self, chunkSize):
         """
@@ -72,6 +76,8 @@ class LoadData:
             print("The file stream is empty now")
             self.closeFile()
         return bitStream
+
+
 
 if __name__ == "__main__":
     loadData1 = LoadData()

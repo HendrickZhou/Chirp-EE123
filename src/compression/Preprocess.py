@@ -8,14 +8,12 @@ from utils.Helper_functions import *
 
 # print(script_path)
 
-# class Preprocess:
-#     """
-#     This class is the interface for everything
+class Preprocess:
+    """
+    This class is the interface for everything
 
-#     """
-#     def __init__(self):
-#         self.loadData = LoadData()
-#         self.compressData = CompressData()
+    """
+    def __init__(self):
+        self.loadData = LoadData()
+        self.compressData = CompressData()
 
-
-#     def compressQueue():
