@@ -5,7 +5,7 @@
 ############################################################
 # Example use
 
-# from bitarray import bitarray
+from bitarray import bitarray
 
 # data = bitarray('10011011')
 # print("data (original): " + str(data))
