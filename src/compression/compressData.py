@@ -6,7 +6,7 @@ asset_path = script_path[:script_path.rfind('src')]+ 'asset' + '/'
 sys.path.append(module_path)
 from scipy import signal 
 from scipy import ndimage, misc, interpolate
-from struct import *
+from struct import pack, unpack
 from utils.Helper_functions import *
 
 buffer_path = asset_path + 'buffer.txt'
