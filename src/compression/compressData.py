@@ -33,7 +33,7 @@ class CompressData:
         self.format_table = format_table
 
     #-------------------------------------#
-    # RESAMPLE
+    # INTERFACE
     #-------------------------------------#
     def compress(self, method = 'resample', params={'factor_xy': 0.5, 'timeFlag': False, 'frame_rate': 10}):
         self.method = method
@@ -148,7 +148,7 @@ class CompressData:
         # decode body
         body_start_idx = header_end_idx
         body_len = unpack('i', data[body_start_idx: body_start_idx + 4])
-        bodyData = np.array(unpack('%si' % (body_len[0]), data[body_start_idx + 4:]))
+        bodyData = np.array(unpack('%si' % (body_len[0]), data[body_start_idx + 4:body_start_idx + 4 + 4*body_len[0]]))
         return info, bodyData
         
     
