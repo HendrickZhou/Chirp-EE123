@@ -16,9 +16,9 @@ pca_example=pca.PCA(image_stack)
 pca_example.procInput_noFlatten()
 compressedX,param=pca_example.getArraysToTransmit()
 
-reconstructed=pca.pca_reconstruct(compressedX,param)
+reconstructed=pca.pca_reconstruct(np.around(compressedX),param)
 
-print(type(compressedX))
-print(param)
+print(compressedX[:100])
+# print(param)
 
 print(reconstructed.shape)
