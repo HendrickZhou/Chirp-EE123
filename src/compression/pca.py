@@ -1,6 +1,7 @@
 import loadData
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import signal
 
 frames = loadData.LoadData()
 frames.loadVideoPixelData('C:\\UCBERKELEY\\sp19\\ee123\\project\\Chirp-EE123\\asset\\Andy_Video.png')
@@ -15,10 +16,45 @@ param['nCol']=nCol
 param['nColors']=nColors
 
 #tunable parameters
+compressionRatio=0.005
 sectionSize=min(80,int(nRow/2),int(nCol/2))
+minSectionSize=10
+minSection=2
+nPC=None
+minVar=0.009
+
+def find_sections():
+    rowCorr=[None]*(nRow-1)
+    for r in range(nRow-1):
+        rowCorr=np.corrcoef(frames.image_stack[:,r,:,:].flatten(),frames.image_stack[:,r+1,:,:].flatten())
+
+    rowCorr=signal.medfilt(rowCorr,5)
+    rowSec=find_locMin(rowCorr)
+
+    colCorr=[None]*(nCol-1)
+    for r in range(nCol-1):
+        colCorr=np.corrcoef(frames.image_stack[:,:,r,:].flatten(),frames.image_stack[:,:,r+1,:].flatten())
+    colCorr=signal.medfilt(colCorr,5)
+    colSec=find_locMin(colCorr)
+    return (rowSec,colSec)
+
+def find_locMin(arr):
+    print(arr)
+    res=[]
+    for i in range(1,len(arr)-1):
+        if arr[i]<arr[i-1] and arr[i]<arr[i+1]:
+            # print(1)
+            res.append(i)
+    return res
+
+
 ifFlatten=False #if flatten: each colored section is a 1d vector input; otherwise: each monochrome row in a section is a separate 1d input
 
-#TODO: implement sectioning by similarity: http://ijcscn.com/Documents/Volumes/vol2issue1/ijcscn2012020118.pdf
+# rowSec,colSec=find_sections()
+# nRowSec=len(rowSec)
+# nColSec=len(colSec)
+
+
 nRowSec=int(nRow/sectionSize)
 rowSec=np.arange(nRowSec+1)*sectionSize
 rowSec[-1]=max(rowSec[-1],nRow)
@@ -27,7 +63,7 @@ print(rowSec)
 nColSec=int(nCol/sectionSize)
 colSec=np.arange(nColSec+1)*sectionSize
 colSec[-1]=max(colSec[-1],nCol)
-print(colSec)
+# print(colSec)
 
 nSec=nColSec*nRowSec
 
@@ -148,8 +184,13 @@ def reassembleX(x_segmented):
 
 # pca compression
 
-def pca_compression(x,nPC=None):
+def pca_compression(x,nPC=None,minVar=None):
     V, Y, Mx, w = pca(x)
+    w_varCap=w/np.sum(w)
+    if minVar!=None:
+        idx=np.greater(w_varCap,minVar)
+        V=V[:,idx]
+        Y=Y[:,idx]
     if nPC!=None:
         V=V[:,:nPC]
         Y=Y[:,:nPC]
@@ -217,7 +258,8 @@ from sklearn import metrics
 compressedX=None
 param['lenSegmentedX']=len(segmentedX)
 for s in range(len(segmentedX)):
-    V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/25))
+    # V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]*compressionRatio))
+    V,Y,Mx,w=pca_compression(segmentedX[s],minVar=minVar)
     param['shapeV'+str(s)]=V.shape
     param['shapeY'+str(s)]=Y.shape
     param['shapeMx'+str(s)]=Mx.shape
@@ -226,5 +268,7 @@ for s in range(len(segmentedX)):
         compressedX=ci
     else:
         compressedX=np.concatenate((compressedX,ci))
+
+print(compressedX.size)
 
 
