@@ -36,7 +36,7 @@ class CompressData:
     #-------------------------------------#
     # RESAMPLE
     #-------------------------------------#
-    def compress(self, method = 'resample', params={'factor_xy': 0.5, 'timeFlag': False}):
+    def compress(self, method = 'resample', params={'factor_xy': 0.5, 'timeFlag': False, 'frame_rate': 10}):
         self.method = method
         if method == 'resample':
             r, info = self.downsample(self.image_stack, params)
@@ -62,6 +62,7 @@ class CompressData:
             com_width = inf[6]
             com_frames = inf[7]
             com_channels = inf[8]
+            frame_rate = inf[9]
             recons = self.upsample(bodyDat.reshape(com_frames, com_height, com_width, com_channels), inf)
             # npArray_play(recons, frame_rate = 20)
             pixData = recons
@@ -69,13 +70,10 @@ class CompressData:
         elif method == 'pca':
             pass
 
-        # print(pixData)
-        print(type(pixData))
-        print(pixData.shape)
         # save np array to png image file
         # pngImg = Image.fromarray(pixData)
         # pngImg.save(asset_path+'/result.png')
-        return pixData
+        return pixData, frame_rate
 
 
     #-------------------------------------#
@@ -84,7 +82,6 @@ class CompressData:
     #-------------------------------------#
     def encode(self):
         # add prefix to our 
-        print(self.format_table[self.method])
         prefix = pack('i', self.format_table[self.method])
         self.final_bits = prefix + self.mainData
 
@@ -98,7 +95,6 @@ class CompressData:
         # get remaining main data for further process
         format = unpack('i', data[0:4])
         mainLen = len(data)//4 - 1
-        # mainData = unpack('%si'%(mainLen), data[4:])
         mainData = data[4:]
 
         self.method = self.format_table[format[0]]
@@ -164,6 +160,7 @@ class CompressData:
 
         factor_xy = params['factor_xy']
         timeFlag = params['timeFlag']
+        frame_rate = params['frame_rate']
 
         if type(factor_xy) is not float:
             print("wrong sampling rate format!!!, continue with factor_xy = 1")
@@ -206,7 +203,7 @@ class CompressData:
             frames = ori_frames
 
         origin_info = [ori_height, ori_width, ori_frames, ori_channels]
-        compressed_info = [timeFlag, height, width, frames, ori_channels]
+        compressed_info = [timeFlag, height, width, frames, ori_channels, frame_rate]
         info = origin_info+compressed_info
         
         return result, info
@@ -259,9 +256,10 @@ class CompressData:
 
 
 if __name__ == "__main__":
-    compressT = CompressData("simpson.png")
+    compressT = CompressData("milkyway.png")
     compressT.compress()
 
-    compressR = CompressData("simpson.png")
-    result = compressR.decompress()
-    npArray_play(result)
+    compressR = CompressData("milkyway.png")
+    result, frame_rate = compressR.decompress()
+    npArray_play(result, frame_rate = frame_rate)
+
