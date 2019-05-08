@@ -104,7 +104,7 @@ class TNCaprs:
         self.Nbuffer = Abuffer*Nchunks+(self.N*3-3)         # length of the large buffer for processing
         self.Ns = 1.0*fs/self.baud # samples per symbol
         self.mark_freq = 1200
-        self.space_freq = 3400
+        self.space_freq = 3000
         self.center_freq = 0.5 * (self.mark_freq + self.space_freq)
         
         ## state variables for the modulator

@@ -1,6 +1,13 @@
+<<<<<<< HEAD
 import compression.loadData as loadData
+=======
+import loadData
+import os
+>>>>>>> 9f0bce8475ef877c47ea5d5f312fd922282a0299
 import numpy as np
 import matplotlib.pyplot as plt
+
+from scipy import signal
 
 frames = loadData.LoadData()
 frames.loadVideoPixelData('../../asset/Andy_Video.png')
@@ -8,11 +15,52 @@ frames.loadVideoPixelData('../../asset/Andy_Video.png')
 print("shape of video data %s" % (frames.image_stack.shape,))
 nImages,nRow,nCol,nColors=frames.image_stack.shape      #assumes 3 color channel when preprocess
 
+param={}
+param['nImages']=nImages
+param['nRow']=nRow
+param['nCol']=nCol
+param['nColors']=nColors
+
 #tunable parameters
-sectionSize=80
+compressionRatio=0.005
+sectionSize=min(80,int(nRow/2),int(nCol/2))
+minSectionSize=10
+minSection=2
+nPC=None
+minVar=0.009
+
+def find_sections():
+    rowCorr=[None]*(nRow-1)
+    for r in range(nRow-1):
+        rowCorr=np.corrcoef(frames.image_stack[:,r,:,:].flatten(),frames.image_stack[:,r+1,:,:].flatten())
+
+    rowCorr=signal.medfilt(rowCorr,5)
+    rowSec=find_locMin(rowCorr)
+
+    colCorr=[None]*(nCol-1)
+    for r in range(nCol-1):
+        colCorr=np.corrcoef(frames.image_stack[:,:,r,:].flatten(),frames.image_stack[:,:,r+1,:].flatten())
+    colCorr=signal.medfilt(colCorr,5)
+    colSec=find_locMin(colCorr)
+    return (rowSec,colSec)
+
+def find_locMin(arr):
+    print(arr)
+    res=[]
+    for i in range(1,len(arr)-1):
+        if arr[i]<arr[i-1] and arr[i]<arr[i+1]:
+            # print(1)
+            res.append(i)
+    return res
+
+
 ifFlatten=False #if flatten: each colored section is a 1d vector input; otherwise: each monochrome row in a section is a separate 1d input
 
-#TODO: implement sectioning by similarity: http://ijcscn.com/Documents/Volumes/vol2issue1/ijcscn2012020118.pdf
+# rowSec,colSec=find_sections()
+# nRowSec=len(rowSec)
+# nColSec=len(colSec)
+
+
 nRowSec=int(nRow/sectionSize)
 rowSec=np.arange(nRowSec+1)*sectionSize
 rowSec[-1]=max(rowSec[-1],nRow)
@@ -21,9 +69,16 @@ print(rowSec)
 nColSec=int(nCol/sectionSize)
 colSec=np.arange(nColSec+1)*sectionSize
 colSec[-1]=max(colSec[-1],nCol)
-print(colSec)
+# print(colSec)
 
 nSec=nColSec*nRowSec
+
+param['nRowSec']=nRowSec
+param['rowSec']=rowSec
+param['nColSec']=nColSec
+param['colSec']=colSec
+
+
 
 #preprocessing input image for PCA
 #PCA for RGB images: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.695.6281&rep=rep1&type=pdf
@@ -135,8 +190,13 @@ def reassembleX(x_segmented):
 
 # pca compression
 
-def pca_compression(x,nPC=None):
+def pca_compression(x,nPC=None,minVar=None):
     V, Y, Mx, w = pca(x)
+    w_varCap=w/np.sum(w)
+    if minVar!=None:
+        idx=np.greater(w_varCap,minVar)
+        V=V[:,idx]
+        Y=Y[:,idx]
     if nPC!=None:
         V=V[:,:nPC]
         Y=Y[:,:nPC]
@@ -186,7 +246,11 @@ def pca_compression(x,nPC=None):
 ## test 5, reassemble frames with 4% compression
 # compressedX=[None]*len(segmentedX)
 # for s in range(len(segmentedX)):
+<<<<<<< HEAD
 #     V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/25))
+=======
+#     V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/100))
+>>>>>>> 9f0bce8475ef877c47ea5d5f312fd922282a0299
 #     nPixels=segmentedX[s].size
 #     reconstructedX=pca_reconstruction(V,Y,Mx)
 #     compressedX[s]=reconstructedX
@@ -200,6 +264,7 @@ def pca_compression(x,nPC=None):
 #     # plt.imshow(frames.image_stack[img])
 #     plt.show()
 
+<<<<<<< HEAD
 # sending compressed arrays
 compressedX=None
 for s in range(len(segmentedX)):
@@ -213,3 +278,23 @@ for s in range(len(segmentedX)):
         compressedX=compressedXi
     else:
         compressedX=np.concatenate((compressedX,compressedXi))
+=======
+##sending compressed arrays
+compressedX=None
+param['lenSegmentedX']=len(segmentedX)
+for s in range(len(segmentedX)):
+    # V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]*compressionRatio))
+    V,Y,Mx,w=pca_compression(segmentedX[s],minVar=minVar)
+    param['shapeV'+str(s)]=V.shape
+    param['shapeY'+str(s)]=Y.shape
+    param['shapeMx'+str(s)]=Mx.shape
+    ci=np.concatenate((V.flatten(),Y.flatten(),Mx.flatten()))
+    if s==0:
+        compressedX=ci
+    else:
+        compressedX=np.concatenate((compressedX,ci))
+
+print(compressedX.size)
+
+
+>>>>>>> 9f0bce8475ef877c47ea5d5f312fd922282a0299

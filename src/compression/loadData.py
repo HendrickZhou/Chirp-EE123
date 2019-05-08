@@ -30,11 +30,11 @@ class LoadData:
 
         self.image_stack = imageStack_load(filename) # uint8 np array
 
-    def saveVideoPixelData(self, filename):
-        pass
+    # def saveVideoPixelData(self, filename):
+    #     pass
 
-    def extractInfo(self):
-        pass
+    # def extractInfo(self):
+    #     pass
 
 
     #-------------------------------------#
@@ -48,15 +48,16 @@ class LoadData:
         self.image = np.array(Image.open(filename))
         return self.image
 
-    def openFile(self, filename):
+    def openFile(self, filename, mode = 'wb'):
         # try except
-        self.file = open(filename, 'rb')
+        self.file = open(filename, mode)
         self.streamFlag = True
 
     def closeFile(self):
         # if closed already, doesn't matter
         self.file.close()
         self.streamFlag = False
+
 
     def loadBitStream(self, chunkSize):
         """
@@ -82,13 +83,13 @@ if __name__ == "__main__":
     loadData1 = LoadData()
     loadData2 = LoadData()
 
-    loadData1.openFile("/Users/zhouhang/Project/Chirp-EE123/asset/simpson.png")
+    loadData1.openFile("/Users/zhouhang/Project/Chirp-EE123/asset/simpson.png", 'rb')
     for i in range(1, 10):
         bits = loadData1.loadBitStream(100)
         print(bits)
     loadData1.closeFile()
 
-    loadData1.openFile("/Users/zhouhang/Project/Chirp-EE123/asset/test.tiff")
+    loadData1.openFile("/Users/zhouhang/Project/Chirp-EE123/asset/test.tiff", 'rb')
     for i in range(1, 10):
         bits = loadData1.loadBitStream(100)
         print(bits)
