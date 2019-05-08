@@ -19,5 +19,6 @@ compressedX,param=pca_example.getArraysToTransmit()
 reconstructed=pca.pca_reconstruct(compressedX,param)
 
 print(type(compressedX))
+print(param)
 
 print(reconstructed.shape)
