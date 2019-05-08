@@ -50,7 +50,8 @@ class CompressData:
         # save it to the file
         with open(self.buffer_path, 'bw+') as f_buffer:
             f_buffer.write(self.final_bits)
-
+    
+    
     def decompress(self):
         # extract from buffer.txt by default
         self.decode()
@@ -257,9 +258,13 @@ class CompressData:
 
 if __name__ == "__main__":
     compressT = CompressData("milkyway.png")
+    ori_Data = compressT.image_stack
     compressT.compress()
 
     compressR = CompressData("milkyway.png")
     result, frame_rate = compressR.decompress()
     npArray_play(result, frame_rate = frame_rate)
+
+    PSNR = psnr(ori_Data, result)
+    print("psnr of comression: %.4f" % PSNR)
 
