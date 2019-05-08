@@ -1,6 +1,8 @@
 import loadData
+import os
 import numpy as np
 import matplotlib.pyplot as plt
+
 from scipy import signal
 
 frames = loadData.LoadData()

@@ -1,6 +1,6 @@
 import sys
 import os
-script_path = os.path.dirname(os.path.abspath( __file__ ))
+script_path = os.path.abspath('')
 module_path = script_path[:script_path.rfind('src')]+ 'src' + '/'
 asset_path = script_path[:script_path.rfind('src')]+ 'asset' + '/'
 sys.path.append(module_path)
@@ -8,8 +8,8 @@ from scipy import signal
 from scipy import ndimage, misc, interpolate
 from struct import *
 from utils.Helper_functions import *
-from loadData import LoadData
 
+buffer_path = asset_path + 'buffer.txt'
 
 class CompressData:
     """
@@ -19,38 +19,108 @@ class CompressData:
         bodyData
         headerData
         finalData
-
-
-
-
     """
-    def __init__(self):
+    def __init__(self, filename):
         """
         Take the image pixel data nparry as input.
         """
-        # self.dataStream = dataStream
-        # self.dataInfo = dataInfo
-        pass
+        self.filepath = asset_path + filename
+        self.buffer_path = buffer_path
+        # 'resample': 0, 'pca': 1
+        format_table = TwoWayDict()
+        format_table['resample'] = 0
+        format_table['pca'] = 1
+        self.format_table = format_table
+
+    #-------------------------------------#
+    # RESAMPLE
+    #-------------------------------------#
+    def compress(self, method = 'resample', params={'factor_xy': 0.5, 'timeFlag': False, 'frame_rate': 10}):
+        self.method = method
+        self.image_stack = imageStack_load(self.filepath)
+
+        if method == 'resample':
+            r, info = self.downsample(self.image_stack, params)
+            com_video_size = np.prod(r.shape)
+            self.mainData = self.encode_resample(info, r.flatten())
+        elif method == 'pca':
+            self.mainData = b''
+            pass
+
+        # write the prefix and combine all handled data together and wirte to the file now
+        self.com_video_size = com_video_size
+        self.encode()
+        # save it to the file
+        with open(self.buffer_path, 'bw+') as f_buffer:
+            f_buffer.write(self.final_bits)        
+    
+    
+    def decompress(self):
+        # extract from buffer.txt by default
+        self.decode()
+        method = self.method
+        if method == 'resample':
+            # equal to decompress_resam
+            inf, bodyDat = self.decode_resample()
+            com_height = inf[5]
+            com_width = inf[6]
+            com_frames = inf[7]
+            com_channels = inf[8]
+            frame_rate = inf[9]
+            recons = self.upsample(bodyDat.reshape(com_frames, com_height, com_width, com_channels), inf)
+            # npArray_play(recons, frame_rate = 20)
+            pixData = recons
+
+        elif method == 'pca':
+            pass
+
+        # save np array to png image file
+        # pngImg = Image.fromarray(pixData)
+        # pngImg.save(asset_path+'/result.png')
+        return pixData, frame_rate
+
 
     #-------------------------------------#
     # FILE CODING
     # this part only handle with already encoded file and add prefix and write it to file
     #-------------------------------------#
-    def encode(self, method):
+    def encode(self):
         # add prefix to our 
-        mainData = self.encode_resample()
-        pass
-    def decode(self, filename):
-        self.compressedFileName = filename
+        prefix = pack('i', self.format_table[self.method])
+        self.final_bits = prefix + self.mainData
+
+    def decode(self):
         # open and read file
+        filename = self.buffer_path
         with open(filename, 'rb') as f_buffer:
             data = f_buffer.read()
-        # extract the method
 
+        # extract the method
         # get remaining main data for further process
-        self.method = 'resample'
+        format = unpack('i', data[0:4])
+        mainLen = len(data)//4 - 1
+        mainData = data[4:]
+
+        self.method = self.format_table[format[0]]
         self.mainData = mainData
-        # return method, mainData
+
+    #-------------------------------------#
+    # PCA
+    #-------------------------------------#
+    def PCA(self):
+        pass
+
+    #-------------------------------------#
+    # JPEG
+    #-------------------------------------#
+    def JPEG(self):
+        pass
+    
+    #-------------------------------------#
+    # JPEG 2000
+    #-------------------------------------#
+    def JPEG2000(self):
+        pass
 
     #-------------------------------------#
     # RESAMPLE
@@ -59,16 +129,7 @@ class CompressData:
         """
         to save the trouble from python bitstream, we'll use file as the buffer for transmission
         """
-        filename = asset_path + 'buffer.txt'
-        self.compressedFileName = filename
-        # with open(filename, 'bw+') as self.f_buffer:
-            # encode the origin_info
-
-
-            # add the file suffix!!!!!
-
-
-
+        # encode the origin_info
         new_info = [len(info)] + info
         header = pack('%si' % len(new_info), *new_info)
         # flatten the numpy array and encode 
@@ -76,16 +137,10 @@ class CompressData:
         body_header = pack('i', len(dataVec))
         # Judge if the len need to use long
         body = body_header + pack('%si' % len(dataVec), *dataVec)  
-            # self.f_buffer.write(header+body)
-
         return header + body
 
     def decode_resample(self):
-        # filename = asset_path + 'buffer.txt'
-        # self.compressedFileName = filename
         data = self.mainData
-        # add the file suffix!!!! and filename
-
         # decode the origin_info
         header_len = unpack('i', data[0:4])
         header_end_idx = 4*header_len[0]+4
@@ -97,7 +152,7 @@ class CompressData:
         return info, bodyData
         
     
-    def downsample(self, npArray, factor_xy, timeFlag = False):
+    def downsample(self, npArray, params):
         """
         Params:
             timeFlag: whether or not downsample in t index, False by default
@@ -106,6 +161,11 @@ class CompressData:
             If you want to use 100%, use 1.0 instead of 1!!
             we only support resample by 2 on time axis!!
         """
+
+        factor_xy = params['factor_xy']
+        timeFlag = params['timeFlag']
+        frame_rate = params['frame_rate']
+
         if type(factor_xy) is not float:
             print("wrong sampling rate format!!!, continue with factor_xy = 1")
             factor_xy = 1.0
@@ -147,11 +207,8 @@ class CompressData:
             frames = ori_frames
 
         origin_info = [ori_height, ori_width, ori_frames, ori_channels]
-        compressed_info = [timeFlag, height, width, frames, ori_channels]
+        compressed_info = [timeFlag, height, width, frames, ori_channels, frame_rate]
         info = origin_info+compressed_info
-
-        # encode
-        encode_resample(self, info, bodyData)
         
         return result, info
 
@@ -190,25 +247,6 @@ class CompressData:
         return result
 
     #-------------------------------------#
-    # PCA
-    #-------------------------------------#
-    def PCA(self):
-        pass
-
-
-    #-------------------------------------#
-    # JPEG
-    #-------------------------------------#
-    def JPEG(self):
-        pass
-    
-    #-------------------------------------#
-    # JPEG 2000
-    #-------------------------------------#
-    def JPEG2000(self):
-        pass
-
-    #-------------------------------------#
     # MPG
     #-------------------------------------#
     def MPG(self):
@@ -221,9 +259,22 @@ class CompressData:
         pass
 
 
-
-
-
-
 if __name__ == "__main__":
-    loadData = LoadData()
+    compressT = CompressData("milkyway.png")
+    compressT.compress()
+    ori_Data = compressT.image_stack
+
+    # evaluate compression
+    com_size = compressT.com_video_size/3
+    ori_size = np.prod(ori_Data.shape)/3
+    print("compressed video size for each color channels: %i" % com_size)
+    print("original video size for each color channels: %i" % ori_size)
+    print("compression rate: %.3f" % (com_size/ori_size))
+
+    compressR = CompressData("milkyway.png")
+    result, frame_rate = compressR.decompress()
+    npArray_play(result, frame_rate = frame_rate)
+    # evaluate compression and transmission
+    PSNR = psnr(ori_Data, result)
+    print("psnr of comression: %.4f" % PSNR)
+
