@@ -25,9 +25,8 @@ class CompressData:
         Take the image pixel data nparry as input.
         """
         self.filepath = asset_path + filename
-        self.image_stack = imageStack_load(self.filepath)
         self.buffer_path = buffer_path
-        # 'resample': 1, 'pca': 2
+        # 'resample': 0, 'pca': 1
         format_table = TwoWayDict()
         format_table['resample'] = 0
         format_table['pca'] = 1
@@ -38,18 +37,22 @@ class CompressData:
     #-------------------------------------#
     def compress(self, method = 'resample', params={'factor_xy': 0.5, 'timeFlag': False, 'frame_rate': 10}):
         self.method = method
+        self.image_stack = imageStack_load(self.filepath)
+
         if method == 'resample':
             r, info = self.downsample(self.image_stack, params)
+            com_video_size = np.prod(r.shape)
             self.mainData = self.encode_resample(info, r.flatten())
         elif method == 'pca':
             self.mainData = b''
             pass
 
         # write the prefix and combine all handled data together and wirte to the file now
+        self.com_video_size = com_video_size
         self.encode()
         # save it to the file
         with open(self.buffer_path, 'bw+') as f_buffer:
-            f_buffer.write(self.final_bits)
+            f_buffer.write(self.final_bits)        
     
     
     def decompress(self):
@@ -258,13 +261,20 @@ class CompressData:
 
 if __name__ == "__main__":
     compressT = CompressData("milkyway.png")
-    ori_Data = compressT.image_stack
     compressT.compress()
+    ori_Data = compressT.image_stack
+
+    # evaluate compression
+    com_size = compressT.com_video_size/3
+    ori_size = np.prod(ori_Data.shape)/3
+    print("compressed video size for each color channels: %i" % com_size)
+    print("original video size for each color channels: %i" % ori_size)
+    print("compression rate: %.3f" % (com_size/ori_size))
 
     compressR = CompressData("milkyway.png")
     result, frame_rate = compressR.decompress()
     npArray_play(result, frame_rate = frame_rate)
-
+    # evaluate compression and transmission
     PSNR = psnr(ori_Data, result)
     print("psnr of comression: %.4f" % PSNR)
 
