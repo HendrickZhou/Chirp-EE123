@@ -1,6 +1,6 @@
 import sys
 import os
-script_path = os.path.dirname(os.path.abspath( __file__ ))
+script_path = os.path.abspath('')
 module_path = script_path[:script_path.rfind('src')]+ 'src' + '/'
 asset_path = script_path[:script_path.rfind('src')]+ 'asset' + '/'
 sys.path.append(module_path)
@@ -8,7 +8,6 @@ from scipy import signal
 from scipy import ndimage, misc, interpolate
 from struct import *
 from utils.Helper_functions import *
-from loadData import LoadData
 
 buffer_path = asset_path + 'buffer.txt'
 
@@ -20,48 +19,43 @@ class CompressData:
         bodyData
         headerData
         finalData
-
-
-
-
     """
     def __init__(self, filename):
         """
         Take the image pixel data nparry as input.
         """
-        # self.dataStream = dataStream
-        # self.dataInfo = dataInfo
-        image = np.array(Image.open(asset_path+filename))
         self.filepath = asset_path + filename
         self.image_stack = imageStack_load(self.filepath)
         self.buffer_path = buffer_path
-
-        # self.format_table = {'resample': }
-
+        # 'resample': 1, 'pca': 2
+        format_table = TwoWayDict()
+        format_table['resample'] = 0
+        format_table['pca'] = 1
+        self.format_table = format_table
 
     #-------------------------------------#
     # RESAMPLE
     #-------------------------------------#
-    def compress(self, method = 'downsample', params={'factor': 0.5, 'timeFlag': False}):
-        if method == 'downsample':
+    def compress(self, method = 'resample', params={'factor_xy': 0.5, 'timeFlag': False}):
+        self.method = method
+        if method == 'resample':
             r, info = self.downsample(self.image_stack, params)
-            self.encode_resample(info, r.flatten())
+            self.mainData = self.encode_resample(info, r.flatten())
         elif method == 'pca':
+            self.mainData = b''
             pass
 
-
-
         # write the prefix and combine all handled data together and wirte to the file now
-        self.encode(method)
-
+        self.encode()
         # save it to the file
-
+        with open(self.buffer_path, 'bw+') as f_buffer:
+            f_buffer.write(self.final_bits)
 
     def decompress(self):
         # extract from buffer.txt by default
         self.decode()
         method = self.method
-        if method == 'downsample':
+        if method == 'resample':
             # equal to decompress_resam
             inf, bodyDat = self.decode_resample()
             com_height = inf[5]
@@ -75,33 +69,40 @@ class CompressData:
         elif method == 'pca':
             pass
 
-
-
+        # print(pixData)
+        print(type(pixData))
+        print(pixData.shape)
         # save np array to png image file
-        pngImg = Image.fromarray(pixData)
-        pngImg.save(self.filename)
+        # pngImg = Image.fromarray(pixData)
+        # pngImg.save(asset_path+'/result.png')
+        return pixData
 
 
     #-------------------------------------#
     # FILE CODING
     # this part only handle with already encoded file and add prefix and write it to file
     #-------------------------------------#
-    def encode(self, method):
+    def encode(self):
         # add prefix to our 
-        with open(filename, 'bw+') as self.f_buffer:
-            mainData = self.encode_resample()
+        print(self.format_table[self.method])
+        prefix = pack('i', self.format_table[self.method])
+        self.final_bits = prefix + self.mainData
+
     def decode(self):
-        filename = self.buffer_path
         # open and read file
+        filename = self.buffer_path
         with open(filename, 'rb') as f_buffer:
             data = f_buffer.read()
 
         # extract the method
-
         # get remaining main data for further process
-        self.method = 'resample'
+        format = unpack('i', data[0:4])
+        mainLen = len(data)//4 - 1
+        # mainData = unpack('%si'%(mainLen), data[4:])
+        mainData = data[4:]
+
+        self.method = self.format_table[format[0]]
         self.mainData = mainData
-        # return method, mainData
 
     #-------------------------------------#
     # RESAMPLE
@@ -110,9 +111,6 @@ class CompressData:
         """
         to save the trouble from python bitstream, we'll use file as the buffer for transmission
         """
-        filename = asset_path + 'buffer.txt'
-        self.compressedFileName = filename
-        # with open(filename, 'bw+') as self.f_buffer:
         # encode the origin_info
         new_info = [len(info)] + info
         header = pack('%si' % len(new_info), *new_info)
@@ -121,16 +119,10 @@ class CompressData:
         body_header = pack('i', len(dataVec))
         # Judge if the len need to use long
         body = body_header + pack('%si' % len(dataVec), *dataVec)  
-            # self.f_buffer.write(header+body)
-
         return header + body
 
     def decode_resample(self):
-        # filename = asset_path + 'buffer.txt'
-        # self.compressedFileName = filename
         data = self.mainData
-        # add the file suffix!!!! and filename
-
         # decode the origin_info
         header_len = unpack('i', data[0:4])
         header_end_idx = 4*header_len[0]+4
@@ -267,8 +259,10 @@ class CompressData:
         pass
 
 
-
-
-
 if __name__ == "__main__":
-    loadData = LoadData()
+    compressT = CompressData("simpson.png")
+    compressT.compress()
+
+    compressR = CompressData("simpson.png")
+    result = compressR.decompress()
+    npArray_play(result)

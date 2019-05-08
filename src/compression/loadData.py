@@ -59,9 +59,6 @@ class LoadData:
         self.streamFlag = False
 
 
-    def saveBitStream(self, chunkSize):
-        
-
     def loadBitStream(self, chunkSize):
         """
         load the file stream without any converion

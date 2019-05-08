@@ -1,7 +1,10 @@
 import loadData
+import os
 import numpy as np
 import matplotlib.pyplot as plt
-
+script_path = os.path.abspath('')
+module_path = script_path[:script_path.rfind('src')]+ 'src' + '/'
+asset_path = script_path[:script_path.rfind('src')]+ 'asset' + '/'
 frames = loadData.LoadData()
 frames.loadVideoPixelData('C:\\UCBERKELEY\\sp19\\ee123\\project\\Chirp-EE123\\asset\\Andy_Video.png')
 

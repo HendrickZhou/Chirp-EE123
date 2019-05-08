@@ -223,3 +223,13 @@ def psnr(ref, meas, maxVal=255):
     mse = np.linalg.norm(dif)**2/np.prod(np.shape(ref))
     psnr = 10*np.log10(maxVal**2.0/mse)
     return psnr
+
+
+
+class TwoWayDict(dict):
+    def __len__(self):
+        return dict.__len__(self) / 2
+
+    def __setitem__(self, key, value):
+        dict.__setitem__(self, key, value)
+        dict.__setitem__(self, value, key)
