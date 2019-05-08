@@ -8,6 +8,7 @@ from scipy import signal
 from scipy import ndimage, misc, interpolate
 from struct import *
 from utils.Helper_functions import *
+# import pca
 
 buffer_path = asset_path + 'buffer.txt'
 
@@ -33,7 +34,7 @@ class CompressData:
         self.format_table = format_table
 
     #-------------------------------------#
-    # INTERFACE
+    # RESAMPLE
     #-------------------------------------#
     def compress(self, method = 'resample', params={'factor_xy': 0.5, 'timeFlag': False, 'frame_rate': 10}):
         self.method = method
@@ -44,9 +45,11 @@ class CompressData:
             com_video_size = np.prod(r.shape)
             self.mainData = self.encode_resample(info, r.flatten())
         elif method == 'pca':
-            self.mainData = b''
-            pass
-
+            pca_example=pca.PCA(self.image_stack)
+            pca_example.procInput_noFlatten()
+            compressedX,param=pca_example.getArraysToTransmit()
+            self.mainData = self.encode_PCA(param, compressedX)
+            
         # write the prefix and combine all handled data together and wirte to the file now
         self.com_video_size = com_video_size
         self.encode()
@@ -72,7 +75,8 @@ class CompressData:
             pixData = recons
 
         elif method == 'pca':
-            pass
+            compressedX, param = self.decode_PCA()
+            reconstructed=pca.pca_reconstruct(compressedX,param)
 
         # save np array to png image file
         # pngImg = Image.fromarray(pixData)
@@ -87,7 +91,9 @@ class CompressData:
     def encode(self):
         # add prefix to our 
         prefix = pack('i', self.format_table[self.method])
+        pre_length = pack('i', len(self.mainData))
         self.final_bits = prefix + self.mainData
+        print(len(self.final_bits))
 
     def decode(self):
         # open and read file
@@ -107,8 +113,27 @@ class CompressData:
     #-------------------------------------#
     # PCA
     #-------------------------------------#
-    def PCA(self):
-        pass
+#     def encode_PCA(self, info, bodyData):
+#         """
+#         to save the trouble from python bitstream, we'll use file as the buffer for transmission
+#         """
+#         # encode the origin_info
+#         new_info = [len(info)] + info
+#         header = pack('%si' % len(new_info), *new_info)
+#         # flatten the numpy array and encode 
+#         dataVec = bodyData.tolist()
+#         body_header = pack('i', len(dataVec))
+#         # Judge if the len need to use long
+#         body = body_header + pack('%si' % len(dataVec), *dataVec)  
+#         return header + body
+    
+#     def decode_PCA(self):
+#         data = self.mainData
+#         # extract param
+        
+#         # extract compressedX
+        
+#         return compressedX,param
 
     #-------------------------------------#
     # JPEG
@@ -131,24 +156,27 @@ class CompressData:
         """
         # encode the origin_info
         new_info = [len(info)] + info
-        header = pack('%si' % len(new_info), *new_info)
+        header = pack('%sH' % len(new_info), *new_info)
         # flatten the numpy array and encode 
         dataVec = bodyData.tolist()
-        body_header = pack('i', len(dataVec))
+#         print(len(dataVec))
+        body_header = pack('I', len(dataVec))
         # Judge if the len need to use long
-        body = body_header + pack('%si' % len(dataVec), *dataVec)  
+        body = body_header + pack('%sH' % len(dataVec), *dataVec)  
         return header + body
 
     def decode_resample(self):
         data = self.mainData
         # decode the origin_info
-        header_len = unpack('i', data[0:4])
-        header_end_idx = 4*header_len[0]+4
-        info = unpack('%si' % (header_len[0]), data[4: header_end_idx])
+        by_len = 2
+        header_len = unpack('H', data[0:by_len])
+        header_end_idx = by_len*header_len[0]+by_len
+        info = unpack('%sH' % (header_len[0]), data[by_len: header_end_idx])
         # decode body
         body_start_idx = header_end_idx
-        body_len = unpack('i', data[body_start_idx: body_start_idx + 4])
-        bodyData = np.array(unpack('%si' % (body_len[0]), data[body_start_idx + 4:body_start_idx + 4 + 4*body_len[0]]))
+        body_len = unpack('I', data[body_start_idx: body_start_idx + 4])
+#         print(body_len[0])
+        bodyData = np.array(unpack('%sH' % (body_len[0]), data[body_start_idx + 4:body_start_idx + 4 + by_len*body_len[0]]))
         return info, bodyData
         
     
@@ -260,7 +288,7 @@ class CompressData:
 
 
 if __name__ == "__main__":
-    compressT = CompressData("milkyway.png")
+    compressT = CompressData("Andy_Video.png")
     compressT.compress()
     ori_Data = compressT.image_stack
 
@@ -277,4 +305,5 @@ if __name__ == "__main__":
     # evaluate compression and transmission
     PSNR = psnr(ori_Data, result)
     print("psnr of comression: %.4f" % PSNR)
+
 
