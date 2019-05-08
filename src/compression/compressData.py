@@ -60,8 +60,8 @@ class CompressData:
             inf, bodyDat = self.decode_resample()
             com_height = inf[5]
             com_width = inf[6]
-            com_channels = inf[7]
-            com_frames = inf[8]
+            com_frames = inf[7]
+            com_channels = inf[8]
             recons = self.upsample(bodyDat.reshape(com_frames, com_height, com_width, com_channels), inf)
             # npArray_play(recons, frame_rate = 20)
             pixData = recons
