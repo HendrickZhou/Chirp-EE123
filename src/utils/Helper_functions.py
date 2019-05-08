@@ -1,235 +1,265 @@
-"""utilities funcitons for project"""
-
-import numpy as np
-
-from PIL import Image
-import time
-import glob
+import sys
 import os
-import bokeh.plotting as bk
-from bokeh.io import push_notebook
-from bokeh.resources import INLINE
-from bokeh.models import GlyphRenderer
-import matplotlib.pyplot as plt
+script_path = os.path.abspath('')
+module_path = script_path[:script_path.rfind('src')]+ 'src' + '/'
+asset_path = script_path[:script_path.rfind('src')]+ 'asset' + '/'
+sys.path.append(module_path)
+from scipy import signal 
+from scipy import ndimage, misc, interpolate
+from struct import *
+from utils.Helper_functions import *
 
-bk.output_notebook(INLINE)
+buffer_path = asset_path + 'buffer.txt'
 
-import re
+class CompressData:
+    """
+    This class contains methods for image/video compression
 
-numbers = re.compile(r'(\d+)')
+    attributes:
+        bodyData
+        headerData
+        finalData
+    """
+    def __init__(self, filename):
+        """
+        Take the image pixel data nparry as input.
+        """
+        self.filepath = asset_path + filename
+        self.image_stack = imageStack_load(self.filepath)
+        self.buffer_path = buffer_path
+        # 'resample': 1, 'pca': 2
+        format_table = TwoWayDict()
+        format_table['resample'] = 0
+        format_table['pca'] = 1
+        self.format_table = format_table
 
-def numericalSort(value):
-    parts = numbers.split(value)
-    parts[1::2] = map(int, parts[1::2])
-    return parts
+    #-------------------------------------#
+    # RESAMPLE
+    #-------------------------------------#
+    def compress(self, method = 'resample', params={'factor_xy': 0.5, 'timeFlag': False, 'frame_rate': 10}):
+        self.method = method
+        if method == 'resample':
+            r, info = self.downsample(self.image_stack, params)
+            self.mainData = self.encode_resample(info, r.flatten())
+        elif method == 'pca':
+            self.mainData = b''
+            pass
 
+        # write the prefix and combine all handled data together and wirte to the file now
+        self.encode()
+        # save it to the file
+        with open(self.buffer_path, 'bw+') as f_buffer:
+            f_buffer.write(self.final_bits)
 
-# Tiff stack player
+    def decompress(self):
+        # extract from buffer.txt by default
+        self.decode()
+        method = self.method
+        if method == 'resample':
+            # equal to decompress_resam
+            inf, bodyDat = self.decode_resample()
+            com_height = inf[5]
+            com_width = inf[6]
+            com_frames = inf[7]
+            com_channels = inf[8]
+            frame_rate = inf[9]
+            recons = self.upsample(bodyDat.reshape(com_frames, com_height, com_width, com_channels), inf)
+            # npArray_play(recons, frame_rate = 20)
+            pixData = recons
 
-def Tiff_play(path, display_size = 500, frame_rate = 2):
-    image_files = sorted(glob.glob(path+"*.tiff"), key=numericalSort)
-    Nframe = len(image_files)
+        elif method == 'pca':
+            pass
 
-    im = Image.open(image_files[0])
-    xdim, ydim= im.size
-    display_array = np.zeros((Nframe,ydim,xdim,4),dtype='uint8')
-    
-    # load image stack
-    for i in range(0,Nframe):
-        im = Image.open(image_files[i])
-        im = im.convert("RGBA")
-        imarray = np.array(im)
-        display_array[i] = np.flipud(imarray)
-        
-    # Play video
-
-    wait_time = 1/frame_rate
-    normalized_size = display_size
-    max_size = np.maximum(xdim,ydim)
-    width = (xdim/max_size * normalized_size).astype('int')
-    height = (ydim/max_size * normalized_size).astype('int')
-    
-    counter = 0
-    first_round = True
-    try:
-        while True:
-            if counter == 0 and first_round:
-                p = bk.figure(x_range=(0,xdim), y_range=(0,ydim), plot_height = height, plot_width = width)
-                p.image_rgba(image=[display_array[counter]], x=0, y=0, dw=xdim, dh=ydim, name='video')
-                bk.show(p, notebook_handle=True)
-                counter += 1
-                first_round = False
-            else:
-                renderer = p.select(dict(name='video', type=GlyphRenderer))
-                source = renderer[0].data_source
-                source.data['image'] = [display_array[counter]]
-                push_notebook()
-                if counter == Nframe-1:
-                    counter = 0
-                else:
-                    counter += 1
-            time.sleep(wait_time)
-            
-    except KeyboardInterrupt:
-        pass
-            
-# Image_stack loader
-
-def Tiff_load(path):
-    image_files = sorted(glob.glob(path+"*.tiff"), key=numericalSort)
-    Nframe = len(image_files)
-    
-    im = Image.open(image_files[0])
-    xdim, ydim= im.size
-    image_stack = np.zeros((Nframe,ydim,xdim,3),dtype='uint8')
-    
-    for i in range(0,Nframe):
-        im = Image.open(image_files[i])
-        image_stack[i] = np.array(im)
-    
-    return image_stack
+        # save np array to png image file
+        # pngImg = Image.fromarray(pixData)
+        # pngImg.save(asset_path+'/result.png')
+        return pixData, frame_rate
 
 
-def Tiff_show(path):
-    image_files = sorted(glob.glob(path+"*.tiff"), key=numericalSort)
-    Nframe = len(image_files)
+    #-------------------------------------#
+    # FILE CODING
+    # this part only handle with already encoded file and add prefix and write it to file
+    #-------------------------------------#
+    def encode(self):
+        # add prefix to our 
+        prefix = pack('i', self.format_table[self.method])
+        self.final_bits = prefix + self.mainData
 
-    im = Image.open(image_files[0])
-    xdim, ydim= im.size    
+    def decode(self):
+        # open and read file
+        filename = self.buffer_path
+        with open(filename, 'rb') as f_buffer:
+            data = f_buffer.read()
 
-    row = int(np.ceil(Nframe/3))
-    col = 3
-    fig, axs = plt.subplots(row, col, figsize = (15, 5))
-    # load image stack
-    for i in range(row):
-        for j in range(col):
-            fileIndex = i*row + j
-            if fileIndex > Nframe - 1:
-                imarray = np.zeros((ydim, xdim))
-            else:
-                im = Image.open(image_files[fileIndex])
-                im = im.convert("RGBA")
-                imarray = np.array(im)
-            if row == 1:
-                axs[j].imshow(imarray)
-            else:
-                axs[i, j].imshow(imarray)
+        # extract the method
+        # get remaining main data for further process
+        format = unpack('i', data[0:4])
+        mainLen = len(data)//4 - 1
+        mainData = data[4:]
 
+        self.method = self.format_table[format[0]]
+        self.mainData = mainData
 
-def npArray_show(npArray):
-    Nframe = npArray.shape[0]
-    xdim = npArray.shape[2]
-    ydim = npArray.shape[1]
-    row = int(np.ceil(Nframe/3))
-    col = 3
-    fig, axs = plt.subplots(row, col, figsize = (15, 5))
-    # load image stack
-    for i in range(row):
-        for j in range(col):
-            imIndex = i*row + j
-            if imIndex > Nframe - 1:
-                imarray = np.zeros((ydim, xdim))
-            else:
-                imarray = npArray[imIndex, :, :, :]
-            if row == 1:
-                axs[j].imshow(imarray)
-            else:
-                axs[i, j].imshow(imarray)
-
-
-
-def npArray_play(npArray, display_size = 500, frame_rate = 2):
-
-    Nframe = npArray.shape[0]
-    xdim = npArray.shape[2]
-    ydim = npArray.shape[1]
-    
-    # load image stack
-    display_array = np.zeros((Nframe,ydim,xdim,4),dtype='uint8')
-    rArray = np.empty((Nframe,ydim,xdim,3),dtype='uint8')
-    
-    for i in range(Nframe):
-        rArray[i] = np.flipud(npArray[i])
-        
-    alpha_pad = 255*np.ones((Nframe,ydim,xdim,1),dtype='uint8')        
-    display_array = np.append(rArray, alpha_pad, axis=3)
-    
-    # Play video
-    wait_time = 1/frame_rate
-    normalized_size = display_size
-    max_size = np.maximum(xdim,ydim)
-    width = (xdim/max_size * normalized_size).astype('int')
-    height = (ydim/max_size * normalized_size).astype('int')
-    
-    counter = 0
-    first_round = True
-    try:
-        while True:
-            if counter == 0 and first_round:
-                p = bk.figure(x_range=(0,xdim), y_range=(0,ydim), plot_height = height, plot_width = width)
-                p.image_rgba(image=[display_array[counter]], x=0, y=0, dw=xdim, dh=ydim, name='video')
-                bk.show(p, notebook_handle=True)
-                counter += 1
-                first_round = False
-            else:
-                renderer = p.select(dict(name='video', type=GlyphRenderer))
-                source = renderer[0].data_source
-                source.data['image'] = [display_array[counter]]
-                push_notebook()
-                if counter == Nframe-1:
-                    counter = 0
-                else:
-                    counter += 1
-            time.sleep(wait_time)
-            
-    except KeyboardInterrupt:
+    #-------------------------------------#
+    # PCA
+    #-------------------------------------#
+    def PCA(self):
         pass
 
-
-
-# Image_stack loader with ffmpeg
-
-def imageStack_load(filename):
-    path = filename[:filename.rfind('.')]+'/'
-    os.system("rm -rf {:s}".format(path))
-    os.system("mkdir {:s}".format(path))
-    os.system("ffmpeg -i {:s} {:s}frame_%2d.tiff".format(filename, path))
-    image_files = sorted(glob.glob(path+"*.tiff"), key=numericalSort)
-    Nframe = len(image_files)
+    #-------------------------------------#
+    # JPEG
+    #-------------------------------------#
+    def JPEG(self):
+        pass
     
-    im = Image.open(image_files[0])
-    xdim, ydim= im.size
-    num_channel = len(im.split())
-    image_stack = np.zeros((Nframe,ydim,xdim,num_channel),dtype='uint8')
+    #-------------------------------------#
+    # JPEG 2000
+    #-------------------------------------#
+    def JPEG2000(self):
+        pass
+
+    #-------------------------------------#
+    # RESAMPLE
+    #-------------------------------------#
+    def encode_resample(self, info, bodyData):
+        """
+        to save the trouble from python bitstream, we'll use file as the buffer for transmission
+        """
+        # encode the origin_info
+        new_info = [len(info)] + info
+        header = pack('%si' % len(new_info), *new_info)
+        # flatten the numpy array and encode 
+        dataVec = bodyData.tolist()
+        body_header = pack('i', len(dataVec))
+        # Judge if the len need to use long
+        body = body_header + pack('%si' % len(dataVec), *dataVec)  
+        return header + body
+
+    def decode_resample(self):
+        data = self.mainData
+        # decode the origin_info
+        header_len = unpack('i', data[0:4])
+        header_end_idx = 4*header_len[0]+4
+        info = unpack('%si' % (header_len[0]), data[4: header_end_idx])
+        # decode body
+        body_start_idx = header_end_idx
+        body_len = unpack('i', data[body_start_idx: body_start_idx + 4])
+        bodyData = np.array(unpack('%si' % (body_len[0]), data[body_start_idx + 4:]))
+        return info, bodyData
+        
     
-    for i in range(0,Nframe):
-        im = Image.open(image_files[i])
-        image_stack[i] = np.array(im)
-    
-    return image_stack
+    def downsample(self, npArray, params):
+        """
+        Params:
+            timeFlag: whether or not downsample in t index, False by default
+            factor_xy: only support float, if wrong type, use 100% by default. 
+        Notice:
+            If you want to use 100%, use 1.0 instead of 1!!
+            we only support resample by 2 on time axis!!
+        """
 
-# Save gif with ffmpeg
+        factor_xy = params['factor_xy']
+        timeFlag = params['timeFlag']
+        frame_rate = params['frame_rate']
 
-def GIF_save(path, framerate):
-    os.system("ffmpeg -r {:d} -i {:s}frame_%2d.tiff -compression_level 0 -plays 0 -f apng {:s}animation.png".format(framerate, path,path))
+        if type(factor_xy) is not float:
+            print("wrong sampling rate format!!!, continue with factor_xy = 1")
+            factor_xy = 1.0
+        
+        if len(npArray.shape) == 3:
+            ori_height= npArray.shape[0]
+            ori_width = npArray.shape[1]
+            ori_channels = npArray.shape[2]
+            timeFlag = False
+        else:
+            ori_frames = npArray.shape[0]
+            ori_height= npArray.shape[1]
+            ori_width = npArray.shape[2]
+            ori_channels = npArray.shape[3]
+            
+        height = int(ori_height*factor_xy)
+        width = int(ori_width*factor_xy)
+            
+        data_xy = np.empty([ori_frames, height, width, ori_channels], dtype = 'uint8')
+        for i in range(ori_frames):
+            data_xy[i] = misc.imresize(npArray[i], factor_xy)
+        
+        # time axis
+        if timeFlag:
+            # downsample
+            h_t = signal.firwin(ori_frames, 1/2)
+            ndimage.convolve1d(data_xy, h_t, axis = 0)
 
-# Compute video PSNR
+            new_frames = int(np.ceil(ori_frames/2))
+            data_t = np.empty([new_frames, height, width, ori_channels], dtype = 'uint8')
 
-def psnr(ref, meas, maxVal=255):
-    assert np.shape(ref) == np.shape(meas), "Test video must match measured vidoe dimensions"
+            for i in range(ori_frames):
+                if i%2 == 0: 
+                    data_t[i//2] = data_xy[i]
+            result = data_t
+            frames = new_frames
+        else:
+            result = data_xy
+            frames = ori_frames
+
+        origin_info = [ori_height, ori_width, ori_frames, ori_channels]
+        compressed_info = [timeFlag, height, width, frames, ori_channels, frame_rate]
+        info = origin_info+compressed_info
+        
+        return result, info
 
 
-    dif = (ref.astype(float)-meas.astype(float)).ravel()
-    mse = np.linalg.norm(dif)**2/np.prod(np.shape(ref))
-    psnr = 10*np.log10(maxVal**2.0/mse)
-    return psnr
+    def upsample(self, npArray, info):
+        """    
+        origin_info: list
+        """
+        frames = npArray.shape[0]
+        height= npArray.shape[1]
+        width = npArray.shape[2]
+        channels = npArray.shape[3]
+            
+        ori_height = info[0]
+        ori_width = info[1]
+        ori_frames = info[2]
+        ori_channels = info[3]
+        timeFlag = info[4]
+            
+        data_t = np.empty([ori_frames, height, width, ori_channels], dtype = 'uint8')
+        if timeFlag:
+                # upsample
+                for i in range(ori_frames):
+                    if i%2 == 0:
+                        data_t[i] = npArray[i//2]
+                    else:
+                        data_t[i] = np.zeros([height, width, channels], dtype = 'uint8')
+                data_t = signal.resample(data_t, ori_frames, axis = 0, )                
+        else:
+            data_t = npArray
+
+        result = np.empty([ori_frames, ori_height, ori_width, ori_channels], dtype = 'uint8')
+        for i in range(ori_frames):
+            result[i] = misc.imresize(data_t[i], [ori_height, ori_width])
+        
+        return result
+
+    #-------------------------------------#
+    # MPG
+    #-------------------------------------#
+    def MPG(self):
+        pass
+
+    #-------------------------------------#
+    # Motion Vector
+    #-------------------------------------#
+    def MoVec(self):
+        pass
 
 
+if __name__ == "__main__":
+    compressT = CompressData("milkyway.png")
+    compressT.compress()
 
-class TwoWayDict(dict):
-    def __len__(self):
-        return dict.__len__(self) / 2
+    compressR = CompressData("milkyway.png")
+    result, frame_rate = compressR.decompress()
+    npArray_play(result, frame_rate = frame_rate)
 
-    def __setitem__(self, key, value):
-        dict.__setitem__(self, key, value)
-        dict.__setitem__(self, value, key)
