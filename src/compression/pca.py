@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 
 from scipy import signal
 
-# frames = loadData.LoadData()
-# frames.loadVideoPixelData('C:\\UCBERKELEY\\sp19\\ee123\\project\\Chirp-EE123\\asset\\Andy_Video.png')
+frames = loadData.LoadData()
+frames.loadVideoPixelData('C:\\UCBERKELEY\\sp19\\ee123\\project\\Chirp-EE123\\asset\\Andy_Video.png')
 
+# frames=None
 print("shape of video data %s" % (frames.image_stack.shape,))
 nImages,nRow,nCol,nColors=frames.image_stack.shape      #assumes 3 color channel when preprocess
 
