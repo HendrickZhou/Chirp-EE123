@@ -96,6 +96,12 @@ class PCA:
             self.param['shapeV' + str(s)] = V.shape
             self.param['shapeY' + str(s)] = Y.shape
             self.param['shapeMx' + str(s)] = Mx.shape
+
+            V=V*1e4
+            V=V.astype('int')
+            Y=Y.astype('int')
+            Mx=Mx.astype('int')
+
             ci = np.concatenate((V.flatten(), Y.flatten(), Mx.flatten()))
             if s == 0:
                 compressedX = ci
@@ -105,6 +111,7 @@ class PCA:
 
 
 def pca_reconstruction(V, Y, Mx):
+    V=V/1e4
     x_centered = Y @ np.transpose(V)
     x = x_centered + np.tile(np.reshape(Mx, (Mx.size, 1)), x_centered.shape[1])
     return x
@@ -167,12 +174,12 @@ def pca_reconstruct(compressedX,param):
         # print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
     reassembledImg=reassembleX(reconstructX,nImages,nRow,nCol,nColors,nRowSec,nColSec,rowSec,colSec)
 
-    # for img in range(nImages):
-    #     reassembledImg[img]=reassembledImg[img]/np.max(reassembledImg[img])
-    #     plt.imshow(reassembledImg[img])
-    #     # plt.imshow(frames.image_stack[img])
-    #     plt.savefig("frame"+str(img)+'.png')
-    #     plt.show()
+    for img in range(nImages):
+        reassembledImg[img]=reassembledImg[img]/np.max(reassembledImg[img])
+        plt.imshow(reassembledImg[img])
+        # plt.imshow(frames.image_stack[img])
+        plt.savefig("frame"+str(img)+'.png')
+        plt.show()
 
 
     return reassembledImg
