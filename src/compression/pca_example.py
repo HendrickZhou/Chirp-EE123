@@ -14,9 +14,15 @@ image_stack = imageStack_load(asset_path+"dog.png")
 
 pca_example=pca.PCA(image_stack)
 pca_example.procInput_noFlatten()
-compressedX,param=pca_example.getArraysToTransmit()
+compressedX=pca_example.getArraysToTransmit()
+encodingPCA=pca_example.encode_PCA(compressedX)
+# print(np.max(compressedX))
+# print(np.min(compressedX))
+# print(compressedX[0])
+# print(np.binary_repr(compressedX[0]))
 
-reconstructed=pca.pca_reconstruct(np.around(compressedX),param)
+decodedX,param=pca.decode_PCA(encodingPCA)
+reconstructed=pca.pca_reconstruct(decodedX,param)
 
 print(compressedX[:100])
 # print(param)
