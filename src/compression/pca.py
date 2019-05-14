@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from struct import pack,unpack
 class PCA:
-    def __init__(self,frames,compressionRatio = 0.005,sectionSize=80,minVar = 0.009):
+    def __init__(self,frames,framerate=10,compressionRatio = 0.005,sectionSize=80,minVar = 0.009):
         assert len(frames.shape)==4 #frames should be 4-D array
         self.frames=frames
         self.nImages, self.nRow, self.nCol, self.nColors = frames.shape  # assumes 3 color channel when preprocess
@@ -37,7 +37,7 @@ class PCA:
         self.param.append((len(self.rowSec)))
         self.param.append(self.nRowSec)
         self.param.extend(self.rowSec)
-
+        self.param.append(framerate)
         self.param.append(len(self.colSec))
         self.param.append(self.nColSec)
         self.param.extend(self.colSec)
@@ -166,6 +166,8 @@ def decode_PCA(binaryArr):
     param_dict['rowSec']=params[6:6+nRowSec]
     # print(params[5:5+nRowSec])
     idx=6+nRowSec
+    param_dict['frameRate']=params[idx]
+    idx+=1
     nColSec=params[idx]
     idx+=1
     param_dict['nColSec']=params[idx]
