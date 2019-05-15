@@ -6,6 +6,6 @@ __pycache__/
 .vscode/
 .DS_Store
 
-asset/rec/frame_*.png
+asset/rec/*
 buffer.txt
-asset/*/*.tif
+asset/*/*.tiff
