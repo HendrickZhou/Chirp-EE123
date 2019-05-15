@@ -1,3 +1,9 @@
+import sys
+import os
+script_path = os.path.abspath('')
+module_path = script_path[:script_path.rfind('src')]+ 'src' + '/'
+asset_path = script_path[:script_path.rfind('src')]+ 'asset' + '/'
+
 import numpy as np
 import matplotlib.pyplot as plt
 from struct import pack,unpack
@@ -265,15 +271,19 @@ def pca_reconstruct(compressedX,param):
         reconstructedXs=pca_reconstruction(V,Y,Mx)
         reconstructX[s]=reconstructedXs
         # print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
-    print('done')
+    # print('done')
     reassembledImg=reassembleX(reconstructX,nImages,nRow,nCol,nColors,nRowSec,nColSec,rowSec,colSec)
 
     
-    for img in range(nImages):
-        reassembledImg[img]=reassembledImg[img]/np.max(reassembledImg[img])
-        # plt.imshow(reassembledImg[img])
+    # for img in range(nImages):
+        # reassembledImg[img]=reassembledImg[img]/np.max(reassembledImg[img])
+        # if not os.path.exists(asset_path+'rec/'):
+            # os.system("mkdir {:s}".format(asset_path+'rec/'))
+        # os.system("ffmpeg -i {:s} {:s}frame_%2d.tiff".format(filename, path))
+        # plt.imsave(asset_path+"rec/framerx"+str(img)+'.png', reassembledImg[img]/np.max(reassembledImg[img]))
         # plt.imshow(frames.image_stack[img])
-        # plt.savefig("frame"+str(img)+'.png')
+        # plt.savefig("../../asset/framerx"+str(img)+'.png')
+        # plt.show()
         # plt.show()
 
 

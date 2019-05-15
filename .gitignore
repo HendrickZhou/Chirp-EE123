@@ -5,3 +5,7 @@ __pycache__/
 
 .vscode/
 .DS_Store
+
+asset/rec/frame_*.png
+buffer.txt
+asset/*/*.tif
