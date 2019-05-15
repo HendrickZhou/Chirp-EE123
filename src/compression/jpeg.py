@@ -1,3 +1,16 @@
+import sys
+import os
+script_path = os.path.abspath('')
+module_path = script_path[:script_path.rfind('src')]+ 'src' + '/'
+asset_path = script_path[:script_path.rfind('src')]+ 'asset' + '/'
+from utils.Helper_functions import *
+from utils.huffman import HuffmanCoding
+from scipy import signal, fftpack
+from scipy import ndimage, misc, interpolate
+from struct import *
+import matplotlib.pyplot as plt
+import numpy as np
+
 class JPEG:
     # by defalut the DCT block size is 8*8!!!
     def __init__(self):
@@ -62,11 +75,11 @@ class JPEG:
         
 
 #             print("shape after quan:")
-            print(q_y.shape)
+            # print(q_y.shape)
             # run length encoding
             y_code = self.runLength(q_y.astype(int))
             cb_code = self.runLength(q_cb.astype(int))
-            print(q_cr.shape)
+            # print(q_cr.shape)
             cr_code = self.runLength(q_cr.astype(int))
 
             
@@ -265,7 +278,7 @@ class JPEG:
             i += 1
 #             print(i)
 
-        return recon, frame_rate
+        return recon[:, : ori_h, :ori_w, :], frame_rate
         # decode body
 
     
@@ -297,7 +310,7 @@ class JPEG:
         return pad_y, pad_cb, pad_cr
     
     
-    def diagFlattenMat(npArray):
+def diagFlattenMat(npArray):
     # the array has to be a square matrix
     wid = npArray.shape[0]
     fliArr = np.flip(npArray, 0)

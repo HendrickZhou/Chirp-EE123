@@ -236,7 +236,9 @@ def npArray_save(path, result, framerate, method):
         if method == "pca":
             plt.imsave(path+"frame_0"+str(img)+'.png', result[img]/np.max(result[img]))
         elif method == "resample":
-            plt.imsave(path+"frame_0"+str(img)+'.png', result[img])    
+            plt.imsave(path+"frame_0"+str(img)+'.png', result[img])   
+        elif method == "jpeg":
+             plt.imsave(path+"frame_0"+str(img)+'.png', result[img])
     os.system("ffmpeg -r {:d} -i {:s}frame_%2d.png -compression_level 0 -plays 0 -f apng {:s}animation.png".format(framerate, path,path))
 
 

@@ -68,7 +68,7 @@ class CompressData:
         elif method =='jpeg':
             jpg = JPEG()
             params = {'Q':50, 'frame_rate': 10}
-            result = jpg.JPEG_com(data_stack, params)
+            result = jpg.JPEG_com(self.image_stack, params)
             self.mainData = result
             
         # write the prefix and combine all handled data together and wirte to the file now
@@ -299,7 +299,7 @@ if __name__ == "__main__":
     # TRANSMITTER END
     ###############################
     fig = "simpson.png"
-    method = "resample"
+    method = "jpeg"
     
     compressT = CompressData(fig)
     compressT.compress(method)
