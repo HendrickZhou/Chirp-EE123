@@ -9,6 +9,7 @@ from scipy import ndimage, misc, interpolate
 from struct import *
 from utils.Helper_functions import *
 from compression.pca import *
+from compression.jpeg import JPEG
 
 buffer_path = asset_path + 'buffer.txt'
 
@@ -34,6 +35,7 @@ class CompressData:
         format_table = TwoWayDict()
         format_table['resample'] = 0
         format_table['pca'] = 1
+        format_table['jpeg'] = 2
         self.format_table = format_table
 
     #-------------------------------------#
@@ -52,19 +54,25 @@ class CompressData:
 
         if method == 'resample':
             r, info = self.downsample(self.image_stack, params)
-            com_video_size = np.prod(r.shape)
+            # com_video_size = np.prod(r.shape)
             self.mainData = self.encode_resample(info, r.flatten())
         elif method == 'pca':
             pca_example=PCA(self.image_stack)
             pca_example.procInput_noFlatten()
             compressedX=pca_example.getArraysToTransmit()
-            com_video_size = np.prod(np.array(compressedX).shape)
+            # com_video_size = np.prod(np.array(compressedX).shape)
             encodingPCA=pca_example.encode_PCA(compressedX)
 #             print(type(encodingPCA))
             self.mainData = encodingPCA
+
+        elif method =='jpeg':
+            jpg = JPEG()
+            params = {'Q':50, 'frame_rate': 10}
+            result = jpg.JPEG_com(data_stack, params)
+            self.mainData = result
             
         # write the prefix and combine all handled data together and wirte to the file now
-        self.com_video_size = com_video_size
+        # self.com_video_size = com_video_size
         self.encode()
         # save it to the file
         with open(self.buffer_path, 'bw+') as f_buffer:
@@ -93,6 +101,9 @@ class CompressData:
             pixData=reconstructed
             frame_rate = param['frameRate']
 
+        elif method == 'jpeg':
+            jpg = JPEG()
+            pixData, frame_rate = jpg.JPEG_decom(self.mainData)
         # save np array to png image file
         # pngImg = Image.fromarray(pixData)
         # pngImg.save(asset_path+'/result.png')
@@ -295,13 +306,13 @@ if __name__ == "__main__":
     ori_Data = compressT.image_stack
 
     # evaluate compression
-    com_size = compressT.com_video_size/3
-    ori_size = np.prod(ori_Data.shape)/3
+    # com_size = compressT.com_video_size/3
+    # ori_size = np.prod(ori_Data.shape)/3
     
     ori_file_size = os.path.getsize(asset_path+fig)
     com_file_size = os.path.getsize(asset_path+"buffer.txt")
-    print("original video size for each color channels: %i" % ori_size)
-    print("compressed video size for each color channels: %i" % com_size)
+    # print("original video size for each color channels: %i" % ori_size)
+    # print("compressed video size for each color channels: %i" % com_size)
     print("original file size is: %i" % ori_file_size)
     print("compressed file size is: %i" % com_file_size)
     print("compression rate: %.3f" % (com_file_size/ori_file_size))
