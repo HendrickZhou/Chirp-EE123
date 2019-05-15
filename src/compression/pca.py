@@ -1,9 +1,5 @@
-<<<<<<< HEAD
-import compression.loadData as loadData
-=======
 import loadData
 import os
->>>>>>> 9f0bce8475ef877c47ea5d5f312fd922282a0299
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -246,11 +242,7 @@ def pca_compression(x,nPC=None,minVar=None):
 ## test 5, reassemble frames with 4% compression
 # compressedX=[None]*len(segmentedX)
 # for s in range(len(segmentedX)):
-<<<<<<< HEAD
-#     V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/25))
-=======
 #     V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/100))
->>>>>>> 9f0bce8475ef877c47ea5d5f312fd922282a0299
 #     nPixels=segmentedX[s].size
 #     reconstructedX=pca_reconstruction(V,Y,Mx)
 #     compressedX[s]=reconstructedX
@@ -264,21 +256,6 @@ def pca_compression(x,nPC=None,minVar=None):
 #     # plt.imshow(frames.image_stack[img])
 #     plt.show()
 
-<<<<<<< HEAD
-# sending compressed arrays
-compressedX=None
-for s in range(len(segmentedX)):
-    V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/25))
-#     print('shape of V:'+str(V.shape))
-#     print('shape of Y:'+str(Y.shape))
-#     print('shape of Mx:'+str(Mx.shape))
-    compressedXi=np.concatenate((V.flatten(),Y.flatten(),Mx.flatten()))
-    print(compressedXi.shape)
-    if s==0:
-        compressedX=compressedXi
-    else:
-        compressedX=np.concatenate((compressedX,compressedXi))
-=======
 ##sending compressed arrays
 compressedX=None
 param['lenSegmentedX']=len(segmentedX)
@@ -297,4 +274,3 @@ for s in range(len(segmentedX)):
 print(compressedX.size)
 
 
->>>>>>> 9f0bce8475ef877c47ea5d5f312fd922282a0299
