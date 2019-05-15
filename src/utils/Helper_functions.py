@@ -1,11 +1,15 @@
 """utilities funcitons for project"""
-
+import sys
+import os
+script_path = os.path.abspath('')
+module_path = script_path[:script_path.rfind('src')]+ 'src' + '/'
+asset_path = script_path[:script_path.rfind('src')]+ 'asset' + '/'
+sys.path.append(module_path)
 import numpy as np
 
 from PIL import Image
 import time
 import glob
-import os
 import bokeh.plotting as bk
 from bokeh.io import push_notebook
 from bokeh.resources import INLINE
@@ -210,8 +214,8 @@ def imageStack_load(filename):
 
 # Save gif with ffmpeg
 
-def GIF_save(path, framerate):
-    os.system("ffmpeg -r {:d} -i {:s}frame_%2d.tiff -compression_level 0 -plays 0 -f apng {:s}animation.png".format(framerate, path,path))
+# def GIF_save(path, framerate):
+#     os.system("ffmpeg -r {:d} -i {:s}frame_%2d.png -compression_level 0 -plays 0 -f apng {:s}animation.png".format(framerate, path,path))
 
 # Compute video PSNR
 
@@ -223,6 +227,17 @@ def psnr(ref, meas, maxVal=255):
     mse = np.linalg.norm(dif)**2/np.prod(np.shape(ref))
     psnr = 10*np.log10(maxVal**2.0/mse)
     return psnr
+
+
+def npArray_save(path, result, framerate, method):
+    os.system("rm -rf {:s}".format(path))
+    os.system("mkdir {:s}".format(path))
+    for img in range(result.shape[0]):
+        if method == "pca":
+            plt.imsave(path+"frame_0"+str(img)+'.png', result[img]/np.max(result[img]))
+        elif method == "resample":
+            plt.imsave(path+"frame_0"+str(img)+'.png', result[img])    
+    os.system("ffmpeg -r {:d} -i {:s}frame_%2d.png -compression_level 0 -plays 0 -f apng {:s}animation.png".format(framerate, path,path))
 
 
 

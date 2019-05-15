@@ -1,167 +1,216 @@
-import loadData
+import sys
 import os
+script_path = os.path.abspath('')
+module_path = script_path[:script_path.rfind('src')]+ 'src' + '/'
+asset_path = script_path[:script_path.rfind('src')]+ 'asset' + '/'
+
 import numpy as np
 import matplotlib.pyplot as plt
+from struct import pack,unpack
+class PCA:
+    def __init__(self,frames,framerate=10,compressionRatio = 0.005,sectionSize=80,minVar = 0.009):
+        assert len(frames.shape)==4 #frames should be 4-D array
+        self.frames=frames
+        self.nImages, self.nRow, self.nCol, self.nColors = frames.shape  # assumes 3 color channel when preprocess
 
-from scipy import signal
+        # self.param={}
+        # self.param['nImages'] = self.nImages
+        # self.param['nRow'] = self.nRow
+        # self.param['nCol'] = self.nCol
+        # self.param['nColors'] = self.nColors
+        self.param=[]
+        self.param.append(self.nImages)
+        self.param.append(self.nRow)
+        self.param.append(self.nCol)
+        self.param.append(self.nColors)
 
-frames = loadData.LoadData()
-frames.loadVideoPixelData('../../asset/Andy_Video.png')
+        self.compressionRation=compressionRatio
+        self.sectionSize = min(sectionSize, int(self.nRow / 2), int(self.nCol / 2))
+        self.minVar=minVar
 
-print("shape of video data %s" % (frames.image_stack.shape,))
-nImages,nRow,nCol,nColors=frames.image_stack.shape      #assumes 3 color channel when preprocess
+        self.nRowSec = int(self.nRow / sectionSize)
+        self.rowSec = np.arange(self.nRowSec + 1) * sectionSize
+        self.rowSec[-1] = max(self.rowSec[-1], self.nRow)
 
-param={}
-param['nImages']=nImages
-param['nRow']=nRow
-param['nCol']=nCol
-param['nColors']=nColors
+        self.nColSec = int(self.nCol / sectionSize)
+        self.colSec = np.arange(self.nColSec + 1) * self.sectionSize
+        self.colSec[-1] = max(self.colSec[-1], self.nCol)
 
-#tunable parameters
-compressionRatio=0.005
-sectionSize=min(80,int(nRow/2),int(nCol/2))
-minSectionSize=10
-minSection=2
-nPC=None
-minVar=0.009
+        # self.param['nRowSec'] = self.nRowSec
+        # self.param['rowSec'] = self.rowSec
+        # self.param['nColSec'] = self.nColSec
+        # self.param['colSec'] = self.colSec
+        self.param.append((len(self.rowSec)))
+        self.param.append(self.nRowSec)
+        self.param.extend(self.rowSec)
+        self.param.append(framerate)
+        self.param.append(len(self.colSec))
+        self.param.append(self.nColSec)
+        self.param.extend(self.colSec)
 
-def find_sections():
-    rowCorr=[None]*(nRow-1)
-    for r in range(nRow-1):
-        rowCorr=np.corrcoef(frames.image_stack[:,r,:,:].flatten(),frames.image_stack[:,r+1,:,:].flatten())
+        self.nSec = self.nColSec * self.nRowSec
+        self.segmentedX=None
+        self.pca_result=None
 
-    rowCorr=signal.medfilt(rowCorr,5)
-    rowSec=find_locMin(rowCorr)
+    def procInput_noFlatten(self):
+        segmentedX = [None] * (self.nSec)
+        for ri in range(self.nRowSec):
+            for ci in range(self.nColSec):
+                rowSecStart = self.rowSec[ri]
+                rowSecEnd = self.rowSec[ri + 1]
+                colSecStart = self.colSec[ci]
+                colSecEnd = self.colSec[ci + 1]
 
-    colCorr=[None]*(nCol-1)
-    for r in range(nCol-1):
-        colCorr=np.corrcoef(frames.image_stack[:,:,r,:].flatten(),frames.image_stack[:,:,r+1,:].flatten())
-    colCorr=signal.medfilt(colCorr,5)
-    colSec=find_locMin(colCorr)
-    return (rowSec,colSec)
+                nrow = (rowSecEnd - rowSecStart) * self.nColors
+                ncol = (colSecEnd - colSecStart)
+                seci = np.zeros((self.nImages * nrow, ncol))
+                for img in range(self.nImages):
+                    r = self.frames[img, rowSecStart:rowSecEnd, colSecStart:colSecEnd, 0]
+                    g = self.frames[img, rowSecStart:rowSecEnd, colSecStart:colSecEnd, 1]
+                    b = self.frames[img, rowSecStart:rowSecEnd, colSecStart:colSecEnd, 2]
 
-def find_locMin(arr):
-    print(arr)
-    res=[]
-    for i in range(1,len(arr)-1):
-        if arr[i]<arr[i-1] and arr[i]<arr[i+1]:
-            # print(1)
-            res.append(i)
-    return res
+                    seci[img * nrow:(img + 1) * nrow, :] = np.concatenate((r, g, b), axis=0)
+                # print(seci.shape)
+                segmentedX[ri * self.nColSec + ci] = seci
+                # print(ri*nColSec+ci)
+        self.segmentedX=segmentedX
+
+    def pca(self,x):
+        """
+        :param x: input n*d
+        :return:(V,Y,Mx,w); V - eigenvector matrix (eigenvectors in columns); Y - coordinates after PCA; Mx - row mean of X, w - vector of eigenvalues
+        """
+        Mx = np.mean(x, axis=1)
+        x_centered = np.copy(x)
+        x_centered = x_centered - np.tile(np.reshape(Mx, (Mx.size, 1)), x.shape[1])
+
+        cov = np.transpose(x_centered) @ x_centered
+        # print(cov.shape)
+
+        w, V = np.linalg.eig(cov)
+        orderW = np.argsort(w * (-1))  # idx that sorts w in decending order
+        w = w[orderW]
+        V = V[:, orderW]
+
+        # Vt=np.transpose(V)
+        Y = x_centered @ V
+        self.pca_result=(V, Y, Mx, w)
+        return (V, Y, Mx, w)
+
+    def pca_compression(self,x):
+        V, Y, Mx, w = self.pca(x)
+        w_varCap = w / np.sum(w)
+        if self.minVar != None:
+            idx = np.greater(w_varCap, self.minVar)
+            V = V[:, idx]
+            Y = Y[:, idx]
+        # if self.compressionRation != None:
+        #     V = V[:, :nPC]
+        #     Y = Y[:, :nPC]
+        return (V, Y, Mx, w)
+
+    def getArraysToTransmit(self):
+        compressedX = None
+
+        # self.param['lenSegmentedX'] = len(self.segmentedX)
+        self.param.append(len(self.segmentedX))
+        # print(len(self.segmentedX))
+        for s in range(len(self.segmentedX)):
+            # V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]*compressionRatio))
+            V, Y, Mx, w = self.pca_compression(self.segmentedX[s])
+
+            # self.param['shapeV' + str(s)] = V.shape
+            # self.param['shapeY' + str(s)] = Y.shape
+            # self.param['shapeMx' + str(s)] = Mx.shape
+            self.param.append(V.shape[0])
+            self.param.append(V.shape[1])
+            self.param.append(Y.shape[0])
+            self.param.append(Y.shape[1])
+            self.param.append(Mx.shape[0])
+
+            V=V*1e4
+            V=V.astype('int')
+            Y=Y.astype('int')
+            Mx=Mx.astype('int')
+
+            ci = np.concatenate((V.flatten(), Y.flatten(), Mx.flatten()))
+            if s == 0:
+                compressedX = ci
+            else:
+                compressedX = np.concatenate((compressedX, ci))
+        # print(np.size(compressedX))
+        return compressedX.tolist()
+
+    def encode_PCA(self,compressedX):
+        """
+        to save the trouble from python bitstream, we'll use file as the buffer for transmission
+        """
+
+        lstTotransmit=[len(self.param)]
+        lstTotransmit.extend(self.param)
+        lstTotransmit.append(len(compressedX))
+        lstTotransmit.extend(compressedX)
+
+        return pack('%si'%len(lstTotransmit),*lstTotransmit)
+
+def decode_PCA(binaryArr):
+    # extract param
+    nParam=unpack('%si'%1,binaryArr[:4])[0]
+    binaryArr=binaryArr[4:]
+    paramslen=4*nParam
+    params=unpack('%si'%nParam,binaryArr[:paramslen])
+    binaryArr=binaryArr[paramslen:]
+
+    param_dict={}
+    param_dict['nImages']=params[0]
+    param_dict['nRow']=params[1]
+    param_dict['nCol']=params[2]
+    param_dict['nColors']=params[3]
+
+    nRowSec=params[4]
+    param_dict['nRowSec']=params[5]
+    param_dict['rowSec']=params[6:6+nRowSec]
+    # print(params[5:5+nRowSec])
+    idx=6+nRowSec
+    param_dict['frameRate']=params[idx]
+    idx+=1
+    nColSec=params[idx]
+    idx+=1
+    param_dict['nColSec']=params[idx]
+    idx+=1
+    param_dict['colSec']=params[idx:idx+nColSec]
+    # print(nColSec)
+    idx=idx+nColSec
+    lenSegmentedX=params[idx]
+    param_dict['lenSegmentedX']=lenSegmentedX
+    idx+=1
+    # print(lenSegmentedX)
+    for s in range(lenSegmentedX):
+        param_dict['shapeV' + str(s)]=(params[idx],params[idx+1])
+        idx+=2
+        param_dict['shapeY' + str(s)]=(params[idx],params[idx+1])
+        idx+=2
+        param_dict['shapeMx' + str(s)]=(params[idx])
+        idx+=1
+
+    # extract compressedX
+    nCompressedX=unpack('%si'%1,binaryArr[:4])[0]
+    # print(nCompressedX)
+    binaryArr=binaryArr[4:]
+    nElements=4*nCompressedX
+    compressedX=unpack('%si'%nCompressedX,binaryArr[:nElements])
 
 
-ifFlatten=False #if flatten: each colored section is a 1d vector input; otherwise: each monochrome row in a section is a separate 1d input
-
-# rowSec,colSec=find_sections()
-# nRowSec=len(rowSec)
-# nColSec=len(colSec)
+    return list(compressedX), param_dict
 
 
-nRowSec=int(nRow/sectionSize)
-rowSec=np.arange(nRowSec+1)*sectionSize
-rowSec[-1]=max(rowSec[-1],nRow)
-print(rowSec)
-
-nColSec=int(nCol/sectionSize)
-colSec=np.arange(nColSec+1)*sectionSize
-colSec[-1]=max(colSec[-1],nCol)
-# print(colSec)
-
-nSec=nColSec*nRowSec
-
-param['nRowSec']=nRowSec
-param['rowSec']=rowSec
-param['nColSec']=nColSec
-param['colSec']=colSec
-
-
-
-#preprocessing input image for PCA
-#PCA for RGB images: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.695.6281&rep=rep1&type=pdf
-
-def procInput_flatten():
-    segmentedX=[None]*(nSec)
-    for ri in range(nRowSec):
-        for ci in range(nColSec):
-            rowSecStart=rowSec[ri]
-            rowSecEnd=rowSec[ri+1]
-            colSecStart=colSec[ci]
-            colSecEnd=colSec[ci+1]
-
-            nPixel=(rowSecEnd-rowSecStart)*(colSecEnd-colSecStart)
-            seci=np.zeros((nImages,nPixel*nColors))
-            for img in range(nImages):
-                r=frames.image_stack[img,rowSecStart:rowSecEnd,colSecStart:colSecEnd,0].flatten()
-                g=frames.image_stack[img,rowSecStart:rowSecEnd,colSecStart:colSecEnd,1].flatten()
-                b=frames.image_stack[img,rowSecStart:rowSecEnd,colSecStart:colSecEnd,2].flatten()
-
-                seci[img,:]=np.concatenate((r,g,b))
-            # print(seci.shape)
-            segmentedX[ri*nColSec+ci]=seci
-            # print(ri*nColSec+ci)
-    return segmentedX
-
-def procInput_noFlatten():
-    segmentedX = [None] * (nSec)
-    for ri in range(nRowSec):
-        for ci in range(nColSec):
-            rowSecStart = rowSec[ri]
-            rowSecEnd = rowSec[ri + 1]
-            colSecStart = colSec[ci]
-            colSecEnd = colSec[ci + 1]
-
-            nrow = (rowSecEnd - rowSecStart) * nColors
-            ncol = (colSecEnd - colSecStart)
-            seci = np.zeros((nImages*nrow, ncol))
-            for img in range(nImages):
-                r = frames.image_stack[img, rowSecStart:rowSecEnd, colSecStart:colSecEnd, 0]
-                g = frames.image_stack[img, rowSecStart:rowSecEnd, colSecStart:colSecEnd, 1]
-                b = frames.image_stack[img, rowSecStart:rowSecEnd, colSecStart:colSecEnd, 2]
-
-                seci[img*nrow:(img+1)*nrow, :] = np.concatenate((r, g, b),axis=0)
-            # print(seci.shape)
-            segmentedX[ri * nColSec + ci] = seci
-            # print(ri*nColSec+ci)
-    return segmentedX
-
-## PCA should be performed separately on each section in segmentedX
-segmentedX=None
-if ifFlatten:
-    segmentedX=procInput_flatten()
-else:
-    segmentedX=procInput_noFlatten()
-
-
-#pca and reconstruction
-
-def pca(x):
-    """
-    :param x: input n*d
-    :return:(V,Y,Mx,w); V - eigenvector matrix (eigenvectors in columns); Y - coordinates after PCA; Mx - row mean of X, w - vector of eigenvalues
-    """
-    Mx=np.mean(x,axis=1)
-    x_centered=np.copy(x)
-    x_centered=x_centered-np.tile(np.reshape(Mx,(Mx.size,1)),x.shape[1])
-
-    cov=np.transpose(x_centered)@x_centered
-    # print(cov.shape)
-
-    w,V=np.linalg.eig(cov)
-    orderW=np.argsort(w*(-1))    #idx that sorts w in decending order
-    w=w[orderW]
-    V=V[:,orderW]
-
-    # Vt=np.transpose(V)
-    Y=x_centered @ V
-
-    return (V,Y,Mx,w)
-
-def pca_reconstruction(V,Y,Mx):
-    x_centered=Y@np.transpose(V)
-    x=x_centered+np.tile(np.reshape(Mx,(Mx.size,1)),x_centered.shape[1])
+def pca_reconstruction(V, Y, Mx):
+    V=V/1e4
+    x_centered = Y @ np.transpose(V)
+    x = x_centered + np.tile(np.reshape(Mx, (Mx.size, 1)), x_centered.shape[1])
     return x
 
-def reassembleX(x_segmented):
+def reassembleX(x_segmented,nImages,nRow,nCol,nColors,nRowSec,nColSec,rowSec,colSec):
     x=np.zeros((nImages,nRow,nCol,nColors))
     for ri in range(nRowSec):
         for ci in range(nColSec):
@@ -170,107 +219,72 @@ def reassembleX(x_segmented):
             colSecStart = colSec[ci]
             colSecEnd = colSec[ci + 1]
 
+            # print(colSecStart)
+            # print(colSecEnd)
+
             nrow = (rowSecEnd - rowSecStart) * nColors
             nrowPerColor=(rowSecEnd - rowSecStart)
             ncol = (colSecEnd - colSecStart)
             seci = x_segmented[ri * nColSec + ci]
             for img in range(nImages):
+                # print(img)
                 img_seci=seci[img*nrow:(img+1)*nrow, :]
-
+                # print(img_seci.shape)
                 x[img, rowSecStart:rowSecEnd, colSecStart:colSecEnd, 0]=img_seci[:nrowPerColor,:]
                 x[img, rowSecStart:rowSecEnd, colSecStart:colSecEnd, 1]=img_seci[nrowPerColor:nrowPerColor*2,:]
                 x[img, rowSecStart:rowSecEnd, colSecStart:colSecEnd, 2]=img_seci[nrowPerColor*2:nrowPerColor*3,:]
 
     return x
 
-
-# pca compression
-
-def pca_compression(x,nPC=None,minVar=None):
-    V, Y, Mx, w = pca(x)
-    w_varCap=w/np.sum(w)
-    if minVar!=None:
-        idx=np.greater(w_varCap,minVar)
-        V=V[:,idx]
-        Y=Y[:,idx]
-    if nPC!=None:
-        V=V[:,:nPC]
-        Y=Y[:,:nPC]
-    return (V,Y,Mx,w)
+def pca_reconstruct(compressedX,param):
+    lenSegmentedX=param['lenSegmentedX']
+    nImages=param['nImages']
+    nRow=param['nRow']
+    nCol=param['nCol']
+    nColors=param['nColors']
+    nRowSec=param['nRowSec']
+    rowSec=param['rowSec']
+    nColSec=param['nColSec']
+    colSec=param['colSec']
 
 
-##tests
-# from sklearn import metrics
-## test 1, reconstruction with all pcs
-# V,Y,Mx,w=pca(segmentedX[0])
-# reconstructedX=pca_reconstruction(V,Y,Mx)
-# print('mse:'+str(metrics.mean_squared_error(segmentedX[0],reconstructedX)))
+    reconstructX=[None]*lenSegmentedX
+    for s in range(lenSegmentedX):
+        # print(s)
+        Vs_shape=param['shapeV' + str(s)]
+        Vs_size=Vs_shape[0]*Vs_shape[1]
+        Ys_shape=param['shapeY' + str(s)]
+        Ys_size=Ys_shape[0]*Ys_shape[1]
+        Mx_shape=param['shapeMx' + str(s)]
+        Mx_size=Mx_shape
 
-# ## test 2, reconstruction with 4% compression
-# print('4% compression:')
-# for s in range(len(segmentedX)):
-#     V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/25))
-#     nPixels=segmentedX[s].size
-#     reconstructedX=pca_reconstruction(V,Y,Mx)
-#     print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
-#
-# ## test 3, reconstruction with 1% compression
-# print('1% compression:')
-# for s in range(len(segmentedX)):
-#     V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/100))
-#     nPixels=segmentedX[s].size
-#     reconstructedX=pca_reconstruction(V,Y,Mx)
-#     print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
+        V=np.reshape(compressedX[:Vs_size],Vs_shape)
+        compressedX=compressedX[Vs_size:]
 
-## test 4, reassemble frames
-# compressedX=[None]*len(segmentedX)
-# for s in range(len(segmentedX)):
-#     V,Y,Mx,w=pca_compression(segmentedX[s])
-#     nPixels=segmentedX[s].size
-#     reconstructedX=pca_reconstruction(V,Y,Mx)
-#     compressedX[s]=reconstructedX
-#     # print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
-# reassembledImg=reassembleX(compressedX)
-# assert reassembledImg.shape==frames.image_stack.shape
-# print('mse per pixel:'+str(metrics.mean_squared_error(np.reshape(frames.image_stack,frames.image_stack.size),np.reshape(reassembledImg,reassembledImg.size))/frames.image_stack.size))
-# print('max mse:'+str(np.max(metrics.mean_squared_error(np.reshape(frames.image_stack,frames.image_stack.size),np.reshape(reassembledImg,reassembledImg.size),multioutput='raw_values'))))
-# for img in range(nImages):
-#     plt.imshow(reassembledImg[img]/np.max(reassembledImg[img]))
-#     # plt.imshow(frames.image_stack[img])
-#     plt.show()
+        Y=np.reshape(compressedX[:Ys_size],Ys_shape)
+        compressedX=compressedX[Ys_size:]
 
-## test 5, reassemble frames with 4% compression
-# compressedX=[None]*len(segmentedX)
-# for s in range(len(segmentedX)):
-#     V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]/100))
-#     nPixels=segmentedX[s].size
-#     reconstructedX=pca_reconstruction(V,Y,Mx)
-#     compressedX[s]=reconstructedX
-#     # print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
-# reassembledImg=reassembleX(compressedX)
-# assert reassembledImg.shape==frames.image_stack.shape
-# print('mse per pixel:'+str(metrics.mean_squared_error(np.reshape(frames.image_stack,frames.image_stack.size),np.reshape(reassembledImg,reassembledImg.size))/frames.image_stack.size))
-# print('max mse:'+str(np.max(metrics.mean_squared_error(np.reshape(frames.image_stack,frames.image_stack.size),np.reshape(reassembledImg,reassembledImg.size),multioutput='raw_values'))))
-# for img in range(nImages):
-#     plt.imshow(reassembledImg[img]/np.max(reassembledImg[img]))
-#     # plt.imshow(frames.image_stack[img])
-#     plt.show()
-
-##sending compressed arrays
-compressedX=None
-param['lenSegmentedX']=len(segmentedX)
-for s in range(len(segmentedX)):
-    # V,Y,Mx,w=pca_compression(segmentedX[s],int(segmentedX[s].shape[0]*compressionRatio))
-    V,Y,Mx,w=pca_compression(segmentedX[s],minVar=minVar)
-    param['shapeV'+str(s)]=V.shape
-    param['shapeY'+str(s)]=Y.shape
-    param['shapeMx'+str(s)]=Mx.shape
-    ci=np.concatenate((V.flatten(),Y.flatten(),Mx.flatten()))
-    if s==0:
-        compressedX=ci
-    else:
-        compressedX=np.concatenate((compressedX,ci))
-
-print(compressedX.size)
+        Mx=np.reshape(compressedX[:Mx_size],Mx_shape)
+        compressedX=compressedX[Mx_size:]
 
 
+        reconstructedXs=pca_reconstruction(V,Y,Mx)
+        reconstructX[s]=reconstructedXs
+        # print('mse per pixel:'+str(metrics.mean_squared_error(segmentedX[s],reconstructedX)/nPixels))
+    # print('done')
+    reassembledImg=reassembleX(reconstructX,nImages,nRow,nCol,nColors,nRowSec,nColSec,rowSec,colSec)
+
+    
+    # for img in range(nImages):
+        # reassembledImg[img]=reassembledImg[img]/np.max(reassembledImg[img])
+        # if not os.path.exists(asset_path+'rec/'):
+            # os.system("mkdir {:s}".format(asset_path+'rec/'))
+        # os.system("ffmpeg -i {:s} {:s}frame_%2d.tiff".format(filename, path))
+        # plt.imsave(asset_path+"rec/framerx"+str(img)+'.png', reassembledImg[img]/np.max(reassembledImg[img]))
+        # plt.imshow(frames.image_stack[img])
+        # plt.savefig("../../asset/framerx"+str(img)+'.png')
+        # plt.show()
+        # plt.show()
+
+
+    return reassembledImg
