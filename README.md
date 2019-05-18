@@ -1,6 +1,13 @@
 # Chirp-EE123
 final project for EE123 spring 2019
 
+
+Check out our youtube video!
+[![Alt text](https://img.youtube.com/vi/K-fmVa1zFKA/0.jpg)](https://www.youtube.com/watch?v=K-fmVa1zFKA)
+
+
+
+
 # How to use
 our transmission code is stored in `src/transmission/rx.ipynb`, and receiver code is stored in `src/transmission/rx.ipynb`
 
